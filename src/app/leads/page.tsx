@@ -156,40 +156,48 @@ export default function LeadsPage() {
         const text = event.target?.result as string;
         const rows = text.split('\n');
         if (rows.length > 1) {
-          const headers = parseCsvRow(rows[0]);
+          const headers = parseCsvRow(rows[0]).map(h => h.toLowerCase().trim());
           
-          const newLeads: any[] = [];
+          const newLeadsData: any[] = [];
           for (let i = 1; i < rows.length; i++) {
             if (!rows[i].trim()) continue;
             const cols = parseCsvRow(rows[i]);
             
-            const getCol = (name: string) => {
-              const idx = headers.findIndex(h => h === name);
+            const getCol = (possibleNames: string[]) => {
+              const idx = headers.findIndex(h => possibleNames.includes(h));
               const val = idx >= 0 && cols[idx] ? cols[idx] : '';
               return val ? val : 'N/A';
             };
 
-            const fullName = getCol('Full Name');
-            if (fullName === 'N/A') continue; // Skip invalid rows
+            const name = getCol(['name', 'full name', 'fullname']);
+            if (name === 'N/A') continue; // Skip invalid rows
 
-            newLeads.push({
-              id: Date.now() + i,
-              name: fullName,
-              company: getCol('Company Name'),
-              role: getCol('Job Title'),
-              location: getCol('Location'),
-              domain: getCol('Company Domain'),
-              linkedin: getCol('LinkedIn Profile'),
-              status: "New",
-              email: "N/A", // Not provided in CSV
-              score: 0,
-              websiteScore: 0,
+            const statusVal = getCol(['status']);
+            const scoreStr = getCol(['score']);
+            const webScoreStr = getCol(['website score', 'websitescore']);
+
+            newLeadsData.push({
+              name: name,
+              company: getCol(['company', 'company name']),
+              role: getCol(['role', 'job title', 'title']),
+              email: getCol(['email', 'email address']),
+              location: getCol(['location', 'address']),
+              domain: getCol(['domain', 'company domain', 'website']),
+              linkedin: getCol(['linkedin', 'linkedin profile', 'linkedin url']),
+              status: statusVal !== 'N/A' ? statusVal : "New",
+              score: scoreStr !== 'N/A' ? parseInt(scoreStr, 10) || 0 : 0,
+              websiteScore: webScoreStr !== 'N/A' ? parseInt(webScoreStr, 10) || 0 : 0,
             });
           }
           
-          if (newLeads.length > 0) {
-            const { data, error } = await supabase.from('leads').insert(newLeads).select();
-            if (data) setLeads(prev => [...data, ...prev]);
+          if (newLeadsData.length > 0) {
+            const { data, error } = await supabase.from('leads').insert(newLeadsData).select();
+            if (error) {
+              console.error("Error inserting leads:", error);
+            }
+            if (data) {
+              setLeads(prev => [...data, ...prev]);
+            }
           }
         }
       };

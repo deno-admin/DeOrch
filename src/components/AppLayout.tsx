@@ -21,22 +21,25 @@ import {
   Zap,
   Menu,
   Bell,
-  Plus
+  Plus,
+  Upload,
+  Building2,
+  CheckSquare
 } from "lucide-react";
 
-function NavItem({ icon, label, href, badge }: { icon: React.ReactNode, label: string, href: string, badge?: string }) {
+function NavItem({ icon, label, href, badge, isSubItem }: { icon: React.ReactNode, label: string, href: string, badge?: string, isSubItem?: boolean }) {
   const pathname = usePathname();
-  const active = pathname === href || (pathname.startsWith(href) && href !== '/');
+  const active = pathname === href;
 
   return (
-    <Link href={href} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+    <Link href={href} className={`w-full flex items-center justify-between py-2.5 rounded-xl transition-all ${
       active 
         ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium" 
         : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:hover:text-neutral-100"
-    }`}>
+    } ${isSubItem ? 'pl-11 pr-3 mt-1' : 'px-3'}`}>
       <div className="flex items-center gap-3">
         {icon}
-        <span className="text-sm">{label}</span>
+        <span className={isSubItem ? "text-sm text-neutral-500 dark:text-neutral-400" : "text-sm"}>{label}</span>
       </div>
       {badge && (
         <span className="px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full">
@@ -69,7 +72,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <div className="p-4 space-y-6 overflow-y-auto h-[calc(100vh-4rem)]">
+        <div className="p-4 space-y-6 overflow-y-auto h-[calc(100vh-4rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
           <div className="space-y-1">
             <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" href="/" />
             <NavItem icon={<Sparkles size={18} />} label="AI Center" href="/ai" badge="New" />
@@ -79,8 +82,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">LeadOS</h3>
             <div className="space-y-1">
               <NavItem icon={<Users size={18} />} label="Leads" href="/leads" />
+              <NavItem icon={<Upload size={16} />} label="Lead Import" href="/leads/import" isSubItem={true} />
+              <NavItem icon={<Building2 size={18} />} label="Companies" href="/companies" />
               <NavItem icon={<Target size={18} />} label="Outreach" href="/outreach" />
-              <NavItem icon={<MessageSquare size={18} />} label="Conversations" href="/conversations" />
+              <NavItem icon={<Calendar size={18} />} label="Meetings" href="/meetings" />
+              <NavItem icon={<CheckSquare size={18} />} label="Tasks" href="/tasks" />
             </div>
           </div>
 
