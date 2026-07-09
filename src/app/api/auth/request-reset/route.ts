@@ -50,12 +50,24 @@ export async function POST(request: Request) {
       auth: { user: smtpConfig.username, pass: smtpConfig.password },
     });
 
-    await transporter.sendMail({
-      from: `${smtpConfig.from_name || ""} <${smtpConfig.from_email}>`.trim(),
-      to: normalizedEmail,
-      subject: "Set your DeOrch password",
-      text: `Set your DeOrch password here (expires in 1 hour):\n\n${setPasswordUrl}\n\nIf you didn't request this, ignore this email.`,
-    });
+    try {
+      const info = await transporter.sendMail({
+        from: `${smtpConfig.from_name || ""} <${smtpConfig.from_email}>`.trim(),
+        to: normalizedEmail,
+        subject: "Set your DeOrch password",
+        text: `Set your DeOrch password here (expires in 1 hour):\n\n${setPasswordUrl}\n\nIf you didn't request this, ignore this email.`,
+      });
+      console.log("request-reset: sendMail accepted", {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        response: info.response,
+      });
+    } catch (err) {
+      console.error("request-reset: sendMail failed", err);
+    }
+  } else {
+    console.error("request-reset: no smtp_settings row found — email not sent");
   }
 
   return genericResponse;
