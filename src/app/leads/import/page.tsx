@@ -16,7 +16,7 @@ import {
   Zap
 } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { supabaseLeads } from "@/lib/supabaseLeads";
 import { useRouter } from "next/navigation";
 
 export default function LeadsImportPage() {
@@ -83,7 +83,7 @@ export default function LeadsImportPage() {
 
             const statusVal = getCol(['status']);
             const scoreStr = getCol(['score']);
-            const webScoreStr = getCol(['website score', 'websitescore']);
+            const webScoreStr = getCol(['website score', 'websitescore', 'website_score']);
 
             newLeadsData.push({
               name: name,
@@ -95,12 +95,12 @@ export default function LeadsImportPage() {
               linkedin: getCol(['linkedin', 'linkedin profile', 'linkedin url']),
               status: statusVal !== 'N/A' ? statusVal : "New",
               score: scoreStr !== 'N/A' ? parseInt(scoreStr, 10) || 0 : 0,
-              websiteScore: webScoreStr !== 'N/A' ? parseInt(webScoreStr, 10) || 0 : 0,
+              website_score: webScoreStr !== 'N/A' ? parseInt(webScoreStr, 10) || 0 : 0,
             });
           }
-          
+
           if (newLeadsData.length > 0) {
-            const { error } = await supabase.from('leads').insert(newLeadsData);
+            const { error } = await supabaseLeads.from('clay_outreach_leads').insert(newLeadsData);
             if (error) throw error;
             setUploadStatus({ success: true, message: `Successfully imported ${newLeadsData.length} leads.` });
             setTimeout(() => router.push('/leads'), 2000);

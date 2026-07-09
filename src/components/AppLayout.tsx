@@ -10,9 +10,10 @@ import {
   ChevronRight, 
   Compass, 
   CreditCard, 
-  Inbox, 
-  LayoutDashboard, 
-  MessageSquare, 
+  Inbox,
+  LayoutDashboard,
+  Mail,
+  MessageSquare,
   Search, 
   Settings, 
   Sparkles, 
@@ -24,7 +25,8 @@ import {
   Plus,
   Upload,
   Building2,
-  CheckSquare
+  CheckSquare,
+  LogOut
 } from "lucide-react";
 
 function NavItem({ icon, label, href, badge, isSubItem }: { icon: React.ReactNode, label: string, href: string, badge?: string, isSubItem?: boolean }) {
@@ -52,6 +54,11 @@ function NavItem({ icon, label, href, badge, isSubItem }: { icon: React.ReactNod
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const pathname = usePathname();
+
+  if (pathname === "/login" || pathname === "/set-password") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-950 font-sans text-neutral-900 dark:text-neutral-50 overflow-hidden w-full">
@@ -85,8 +92,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <NavItem icon={<Upload size={16} />} label="Lead Import" href="/leads/import" isSubItem={true} />
               <NavItem icon={<Building2 size={18} />} label="Companies" href="/companies" />
               <NavItem icon={<Target size={18} />} label="Outreach" href="/outreach" />
+              <NavItem icon={<Mail size={18} />} label="Mailer" href="/mailer" />
               <NavItem icon={<Calendar size={18} />} label="Meetings" href="/meetings" />
               <NavItem icon={<CheckSquare size={18} />} label="Tasks" href="/tasks" />
+              <NavItem icon={<CheckSquare size={18} />} label="Checklist" href="/checklist" />
             </div>
           </div>
 
@@ -138,6 +147,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
             </button>
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 border-2 border-white dark:border-neutral-900 shadow-sm"></div>
+            <form action="/api/logout" method="POST">
+              <button
+                type="submit"
+                title="Log out"
+                className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
+              >
+                <LogOut size={20} />
+              </button>
+            </form>
           </div>
         </header>
 
