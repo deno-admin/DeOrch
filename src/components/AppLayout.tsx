@@ -56,7 +56,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
 
-  if (pathname === "/login" || pathname === "/set-password") {
+  if (pathname === "/login") {
     return <>{children}</>;
   }
 
