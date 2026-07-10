@@ -6,7 +6,7 @@ export const COLD_OUTREACH_TEMPLATE = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 
   <meta name="x-apple-disable-message-reformatting">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="format-detection" content="telephone=no">
-  <title>The ultimate school starter pack</title><!--[if (mso 16)]>
+  <title>Denovation</title><!--[if (mso 16)]>
       <style type="text/css">
          a {text-decoration: none;}
       </style>
