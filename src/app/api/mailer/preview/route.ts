@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
 import { renderColdOutreachEmail } from "@/lib/coldOutreachTemplateSource";
-import { generateUnsubscribeToken } from "@/lib/unsubscribeToken";
 
 export async function POST(request: Request) {
   try {
-    const { companyName, firstName, draftText, leadId } = await request.json();
+    const { companyName, firstName, draftText } = await request.json();
 
     if (!draftText || typeof draftText !== "string") {
       return NextResponse.json({ error: "draftText is required" }, { status: 400 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-    const unsubscribeUrl = leadId
-      ? `${appUrl}/api/unsubscribe?id=${leadId}&token=${generateUnsubscribeToken(leadId)}`
-      : "#";
+    // Deliberately not a real token: this is a visual preview, and a live
+    // unsubscribe link here would let a stray click silently unsubscribe a
+    // real lead without ever sending them an email.
+    const unsubscribeUrl = "javascript:void(0)";
 
     const html = renderColdOutreachEmail({
       companyName: companyName || "",

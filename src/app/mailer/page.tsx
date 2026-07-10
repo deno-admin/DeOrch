@@ -350,14 +350,14 @@ export default function MailerPage() {
     }
   };
 
-  const previewEmail = async (companyName: string, firstName: string, draftText: string, leadId?: number) => {
+  const previewEmail = async (companyName: string, firstName: string, draftText: string) => {
     if (!draftText) return;
     setIsPreviewLoading(true);
     try {
       const res = await fetch("/api/mailer/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName, firstName, draftText, leadId }),
+        body: JSON.stringify({ companyName, firstName, draftText }),
       });
       const data = await res.json();
       if (data.error) {
@@ -897,7 +897,7 @@ export default function MailerPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => previewEmail(lead.company, (lead.name || "").split(" ")[0], (lead[currentStageConfig.draftKey] as string) || "", lead.id)}
+                            onClick={() => previewEmail(lead.company, (lead.name || "").split(" ")[0], (lead[currentStageConfig.draftKey] as string) || "")}
                             disabled={!hasDraft || isPreviewLoading}
                             className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             title={hasDraft ? "Preview email" : "No draft to preview"}
@@ -1017,7 +1017,7 @@ export default function MailerPage() {
               <div className="pt-2 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => previewEmail(editingLead.company, (editingLead.name || "").split(" ")[0], editedBody, editingLead.id)}
+                  onClick={() => previewEmail(editingLead.company, (editingLead.name || "").split(" ")[0], editedBody)}
                   disabled={!editedBody || isPreviewLoading}
                   className="px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
