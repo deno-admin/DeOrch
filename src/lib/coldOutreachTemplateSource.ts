@@ -126,7 +126,7 @@ a[x-apple-data-detectors],
                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-spacing:0px">
                     <tbody>
                      <tr>
-                      <td align="left" style="padding:0 30px 30px;Margin:0"><h1 style="Margin:0;font-family:verdana, geneva, sans-serif;mso-line-height-rule:exactly;letter-spacing:0;font-size:49px;font-style:normal;font-weight:normal;line-height:59px;color:#ffffff"><em>{{hook_line}}</em></h1></td>
+                      <td align="left" style="padding:0 30px 30px;Margin:0"><h1 style="Margin:0;font-family:verdana, geneva, sans-serif;mso-line-height-rule:exactly;letter-spacing:0;font-size:40px;font-style:normal;font-weight:normal;line-height:48px;color:#ffffff"><em>{{hook_line}}</em></h1></td>
                      </tr>
                     </tbody>
                    </table></td>
@@ -160,7 +160,7 @@ a[x-apple-data-detectors],
                    <table cellpadding="0" cellspacing="0" role="presentation" width="100%" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-spacing:0px">
                     <tbody>
                      <tr>
-                      <td align="left" style="padding:0;Margin:0"><h1 style="Margin:0;font-family:verdana, geneva, sans-serif;mso-line-height-rule:exactly;letter-spacing:0;font-size:49px;font-style:normal;font-weight:normal;line-height:59px;color:#000000"><em>{{tagline}}</em></h1></td>
+                      <td align="left" style="padding:0;Margin:0"><h1 style="Margin:0;font-family:verdana, geneva, sans-serif;mso-line-height-rule:exactly;letter-spacing:0;font-size:40px;font-style:normal;font-weight:normal;line-height:48px;color:#000000"><em>{{tagline}}</em></h1></td>
                      </tr>
                      <tr>
                       <td align="left" style="padding:30px 0 0;Margin:0"><span class="es-button-border" style="border-style:solid;border-color:#2CB543;background:#5383F8;border-width:0px;display:inline-block;border-radius:10px;width:auto"><a target="_blank" href="https://calendly.com/denovation/30min" class="es-button" style="mso-style-priority:100 !important;text-decoration:none !important;mso-line-height-rule:exactly;color:#FFFFFF;font-size:20px;font-weight:normal;padding:15px 25px;display:inline-block;background:#5383F8;border-radius:10px;font-family:verdana, geneva, sans-serif;font-style:normal;line-height:24px;width:auto;text-align:center;letter-spacing:0;mso-padding-alt:0;mso-border-alt:10px solid #5383F8;text-transform:none">Book a Call</a></span></td>

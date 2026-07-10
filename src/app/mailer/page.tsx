@@ -110,6 +110,9 @@ export default function MailerPage() {
   const [editedBody, setEditedBody] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
   const [activeStage, setActiveStage] = useState<string>("initial");
   const currentStageConfig = STAGES.find(s => s.id === activeStage) || STAGES[0];
 
@@ -349,6 +352,7 @@ export default function MailerPage() {
 
   const previewEmail = async (companyName: string, firstName: string, draftText: string, leadId?: number) => {
     if (!draftText) return;
+    setIsPreviewLoading(true);
     try {
       const res = await fetch("/api/mailer/preview", {
         method: "POST",
@@ -360,14 +364,12 @@ export default function MailerPage() {
         alert(data.error);
         return;
       }
-      const win = window.open("", "_blank");
-      if (win) {
-        win.document.write(data.html);
-        win.document.close();
-      }
+      setPreviewHtml(data.html);
     } catch (err) {
       console.error("Preview error:", err);
       alert("Failed to generate preview.");
+    } finally {
+      setIsPreviewLoading(false);
     }
   };
 
@@ -896,11 +898,11 @@ export default function MailerPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => previewEmail(lead.company, (lead.name || "").split(" ")[0], (lead[currentStageConfig.draftKey] as string) || "", lead.id)}
-                            disabled={!hasDraft}
+                            disabled={!hasDraft || isPreviewLoading}
                             className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             title={hasDraft ? "Preview email" : "No draft to preview"}
                           >
-                            <Eye size={16} />
+                            {isPreviewLoading ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
                           </button>
                           <button onClick={() => openEditModal(lead)} className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors" title="Edit draft">
                             <Edit2 size={16} />
@@ -1016,10 +1018,10 @@ export default function MailerPage() {
                 <button
                   type="button"
                   onClick={() => previewEmail(editingLead.company, (editingLead.name || "").split(" ")[0], editedBody, editingLead.id)}
-                  disabled={!editedBody}
+                  disabled={!editedBody || isPreviewLoading}
                   className="px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Eye size={14} /> Preview
+                  {isPreviewLoading ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Preview
                 </button>
                 <button onClick={() => setEditingLead(null)} className="flex-1 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
                   Cancel
@@ -1028,6 +1030,22 @@ export default function MailerPage() {
                   {isSavingEdit && <Loader2 size={14} className="animate-spin" />} Save
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewHtml && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-2xl h-[85vh] overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
+              <h2 className="text-lg font-bold flex items-center gap-2"><Eye size={18} /> Email Preview</h2>
+              <button onClick={() => setPreviewHtml(null)} className="p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden bg-neutral-100 dark:bg-neutral-950">
+              <iframe srcDoc={previewHtml} title="Email preview" className="w-full h-full border-0 bg-white" />
             </div>
           </div>
         </div>
