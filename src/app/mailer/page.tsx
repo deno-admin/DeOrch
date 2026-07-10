@@ -13,7 +13,8 @@ import {
   Edit2,
   MailX,
   ChevronDown,
-  Tag
+  Tag,
+  Eye
 } from "lucide-react";
 import Link from "next/link";
 import { supabaseLeads } from "@/lib/supabaseLeads";
@@ -343,6 +344,30 @@ export default function MailerPage() {
         const uniqueNew = allSelectableIds.filter(id => !prev.includes(id));
         return [...prev, ...uniqueNew];
       });
+    }
+  };
+
+  const previewEmail = async (companyName: string, firstName: string, draftText: string, leadId?: number) => {
+    if (!draftText) return;
+    try {
+      const res = await fetch("/api/mailer/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyName, firstName, draftText, leadId }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.write(data.html);
+        win.document.close();
+      }
+    } catch (err) {
+      console.error("Preview error:", err);
+      alert("Failed to generate preview.");
     }
   };
 
@@ -869,6 +894,14 @@ export default function MailerPage() {
                       <td className="p-4">{statusBadge(lead)}</td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => previewEmail(lead.company, (lead.name || "").split(" ")[0], (lead[currentStageConfig.draftKey] as string) || "", lead.id)}
+                            disabled={!hasDraft}
+                            className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={hasDraft ? "Preview email" : "No draft to preview"}
+                          >
+                            <Eye size={16} />
+                          </button>
                           <button onClick={() => openEditModal(lead)} className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors" title="Edit draft">
                             <Edit2 size={16} />
                           </button>
@@ -980,6 +1013,14 @@ export default function MailerPage() {
                 />
               </div>
               <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => previewEmail(editingLead.company, (editingLead.name || "").split(" ")[0], editedBody, editingLead.id)}
+                  disabled={!editedBody}
+                  className="px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Eye size={14} /> Preview
+                </button>
                 <button onClick={() => setEditingLead(null)} className="flex-1 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
                   Cancel
                 </button>
