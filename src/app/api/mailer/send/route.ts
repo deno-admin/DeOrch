@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { getDeOrchAdminClient, getLeadsAdminClient } from "@/lib/supabaseAdmin";
 import { generateUnsubscribeToken } from "@/lib/unsubscribeToken";
+import { renderColdOutreachEmail } from "@/lib/coldOutreachTemplateSource";
 
 export async function POST(request: Request) {
   try {
@@ -104,6 +105,12 @@ export async function POST(request: Request) {
 
       const unsubscribeUrl = `${appUrl}/api/unsubscribe?id=${lead.id}&token=${generateUnsubscribeToken(lead.id)}`;
       const bodyWithFooter = `${draftText}\n\n---\nDenovation (denovation.in)\nDon't want these emails? Unsubscribe: ${unsubscribeUrl}`;
+      const html = renderColdOutreachEmail({
+        companyName: lead.company,
+        firstName: (lead.name || "").split(" ")[0],
+        draftText,
+        unsubscribeUrl,
+      });
 
       try {
         await transporter.sendMail({
@@ -111,6 +118,7 @@ export async function POST(request: Request) {
           to: lead.email,
           subject,
           text: bodyWithFooter,
+          html,
           headers: {
             "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@denovation.in>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
