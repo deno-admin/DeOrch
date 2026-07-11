@@ -107,6 +107,7 @@ export default function LeadsPage() {
   const [researchFilter, setResearchFilter] = useState<"all" | "with" | "without">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "not_sent" | "sent" | "failed" | "no_draft">("all");
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>("All");
+  const [batchFilter, setBatchFilter] = useState<string>("All");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [activeStage, setActiveStage] = useState<string>("initial");
   const currentStageConfig = STAGES.find(s => s.id === activeStage) || STAGES[0];
@@ -168,7 +169,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeStage, emailFilter, researchFilter, statusFilter, searchQuery, dateFilter, leadStatusFilter]);
+  }, [activeStage, emailFilter, researchFilter, statusFilter, searchQuery, dateFilter, leadStatusFilter, batchFilter]);
 
   const withEmailCount = leads.filter(l => !!l.email && l.email !== 'N/A').length;
   const withoutEmailCount = leads.length - withEmailCount;
@@ -291,6 +292,18 @@ export default function LeadsPage() {
     return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 animate-in fade-in duration-200">No draft</span>;
   };
 
+  const availableBatches = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach(lead => {
+      if (lead.batch && lead.batch !== 'N/A') {
+        counts[lead.batch] = (counts[lead.batch] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .map(([batch, count]) => ({ batch, count }))
+      .sort((a, b) => a.batch.localeCompare(b.batch));
+  }, [leads]);
+
   const availableDates = React.useMemo(() => {
     const counts: Record<string, number> = {};
     leads.forEach(lead => {
@@ -314,6 +327,7 @@ export default function LeadsPage() {
       (lead.role || '').toLowerCase().includes(searchQuery.toLowerCase());
       
     const matchesCRMStatus = leadStatusFilter === "All" || lead.status === leadStatusFilter;
+    const matchesBatch = batchFilter === "All" || lead.batch === batchFilter;
     const matchesEmail = matchesEmailFilter(lead);
     const matchesResearch = matchesResearchFilter(lead);
     const matchesStatus = matchesStatusFilter(lead);
@@ -328,7 +342,7 @@ export default function LeadsPage() {
       }
     }
     
-    return matchesSearch && matchesCRMStatus && matchesEmail && matchesResearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesCRMStatus && matchesBatch && matchesEmail && matchesResearch && matchesStatus && matchesDate;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE));
@@ -423,6 +437,7 @@ export default function LeadsPage() {
             const statusVal = getCol(['status']);
             const scoreStr = getCol(['score']);
             const webScoreStr = getCol(['website score', 'websitescore', 'website_score']);
+            const batchVal = getCol(['batch']);
 
             newLeadsData.push({
               name: name,
@@ -435,6 +450,7 @@ export default function LeadsPage() {
               status: statusVal !== 'N/A' ? statusVal : "New",
               score: scoreStr !== 'N/A' ? parseInt(scoreStr, 10) || 0 : 0,
               website_score: webScoreStr !== 'N/A' ? parseInt(webScoreStr, 10) || 0 : 0,
+              batch: batchVal !== 'N/A' ? batchVal : null,
             });
           }
 
@@ -559,6 +575,7 @@ export default function LeadsPage() {
       research_points: getFormStr("research_points"),
       subject: getFormStr("subject"),
       email_draft: getFormStr("email_draft"),
+      batch: formData.get("batch") as string || null,
     };
 
     const { websiteScore, ...rest } = newLeadData;
@@ -844,6 +861,35 @@ export default function LeadsPage() {
           )}
         </div>
 
+        <div className="relative w-full sm:w-60 flex items-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500 transition-shadow">
+          <span className="text-xs font-medium text-neutral-500 mr-2 shrink-0">
+            Batch:
+          </span>
+          <select
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="w-full bg-transparent text-sm outline-none border-none text-neutral-700 dark:text-neutral-300 cursor-pointer pr-6 appearance-none"
+          >
+            <option value="All" className="bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300">All Batches</option>
+            {availableBatches.map(({ batch, count }) => (
+              <option key={batch} value={batch} className="bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300">
+                {batch} ({count})
+              </option>
+            ))}
+          </select>
+          {batchFilter !== "All" ? (
+            <button
+              onClick={() => setBatchFilter("All")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer z-10 animate-in fade-in"
+              title="Clear batch filter"
+            >
+              <X size={14} />
+            </button>
+          ) : (
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          )}
+        </div>
+
         <div className="flex items-center gap-4 sm:ml-auto">
           <span className="text-sm text-neutral-500">
             {filteredLeads.length === 0
@@ -881,6 +927,7 @@ export default function LeadsPage() {
                 setResearchFilter("all");
                 setStatusFilter("all");
                 setLeadStatusFilter("All");
+                setBatchFilter("All");
                 setDateFilter("");
               }}
               className="mt-4 text-indigo-600 dark:text-indigo-400 font-medium hover:underline text-sm cursor-pointer"
@@ -1132,6 +1179,11 @@ export default function LeadsPage() {
                   </select>
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Batch</label>
+                <input name="batch" defaultValue={editingLead?.batch !== 'N/A' ? (editingLead?.batch || "") : ""} type="text" placeholder="e.g. finance_us_190" className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium flex justify-between">
@@ -1295,7 +1347,14 @@ function TableView({
               </td>
               <td className="p-4">
                 <div>
-                  <h4 className="font-medium text-sm text-neutral-900 dark:text-neutral-200 line-clamp-1" title={lead.company}>{lead.company}</h4>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h4 className="font-medium text-sm text-neutral-900 dark:text-neutral-200 line-clamp-1" title={lead.company}>{lead.company}</h4>
+                    {lead.batch && lead.batch !== 'N/A' && (
+                      <span className="inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/50">
+                        {lead.batch}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-neutral-500 line-clamp-1" title={lead.role}>{lead.role}</p>
                 </div>
               </td>
@@ -1463,7 +1522,14 @@ function KanbanView({
                         {(lead.name || '?').split(' ').filter(Boolean).map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-sm line-clamp-1">{lead.name}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-semibold text-sm line-clamp-1">{lead.name}</h4>
+                          {lead.batch && lead.batch !== 'N/A' && (
+                            <span className="inline-flex items-center text-[8px] font-semibold px-1 py-0.2 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/50">
+                              {lead.batch}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-neutral-500 line-clamp-1">{lead.role}</p>
                       </div>
                     </div>

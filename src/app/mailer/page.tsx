@@ -41,6 +41,7 @@ interface MailerLead {
   email_follow_up_5_sent_at: string | null;
   created_at: string | null;
   status: string | null;
+  batch: string | null;
 }
 
 const CRM_STATUSES = ["New", "Qualified", "Contacted", "Follow Up", "Replied", "Meeting Scheduled", "Not Interested", "Unsubscribed"];
@@ -119,6 +120,7 @@ export default function MailerPage() {
   const [dateFilter, setDateFilter] = useState<string>("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>("All");
+  const [batchFilter, setBatchFilter] = useState<string>("All");
   const [openStatusId, setOpenStatusId] = useState<number | null>(null);
   const [statusPos, setStatusPos] = useState({ top: 0, left: 0, width: 0 });
 
@@ -132,7 +134,7 @@ export default function MailerPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeStage, emailFilter, researchFilter, statusFilter, searchQuery, dateFilter, leadStatusFilter]);
+  }, [activeStage, emailFilter, researchFilter, statusFilter, searchQuery, dateFilter, leadStatusFilter, batchFilter]);
 
   useEffect(() => {
     const handleClose = () => {
@@ -160,7 +162,8 @@ export default function MailerPage() {
           email_follow_up_1, email_follow_up_2, email_follow_up_3, email_follow_up_4, email_follow_up_5,
           email_follow_up_1_sent_at, email_follow_up_2_sent_at, email_follow_up_3_sent_at, email_follow_up_4_sent_at, email_follow_up_5_sent_at,
           created_at,
-          status
+          status,
+          batch
         `)
         .order("id", { ascending: false })
         .range(from, from + CHUNK_SIZE - 1);
@@ -269,6 +272,18 @@ export default function MailerPage() {
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   };
 
+  const availableBatches = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach(lead => {
+      if (lead.batch && lead.batch !== 'N/A') {
+        counts[lead.batch] = (counts[lead.batch] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .map(([batch, count]) => ({ batch, count }))
+      .sort((a, b) => a.batch.localeCompare(b.batch));
+  }, [leads]);
+
   const availableDates = React.useMemo(() => {
     const counts: Record<string, number> = {};
     leads.forEach(lead => {
@@ -303,8 +318,9 @@ export default function MailerPage() {
 
     const currentLeadStatus = lead.status ? (lead.status.toLowerCase() === 'new' ? 'New' : lead.status) : 'New';
     const matchesLeadStatus = leadStatusFilter === "All" || currentLeadStatus === leadStatusFilter;
+    const matchesBatch = batchFilter === "All" || lead.batch === batchFilter;
 
-    return matchesEmail && matchesResearch && matchesStatus && matchesSearch && matchesDate && matchesLeadStatus;
+    return matchesEmail && matchesResearch && matchesStatus && matchesSearch && matchesDate && matchesLeadStatus && matchesBatch;
   });
 
   const selectableLeads = filteredLeads;
@@ -793,6 +809,35 @@ export default function MailerPage() {
           )}
         </div>
 
+        <div className="relative w-full sm:w-60 flex items-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500 transition-shadow">
+          <span className="text-xs font-medium text-neutral-500 mr-2 shrink-0">
+            Batch:
+          </span>
+          <select
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="w-full bg-transparent text-sm outline-none border-none text-neutral-700 dark:text-neutral-300 cursor-pointer pr-6 appearance-none"
+          >
+            <option value="All" className="bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300">All Batches</option>
+            {availableBatches.map(({ batch, count }) => (
+              <option key={batch} value={batch} className="bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300">
+                {batch} ({count})
+              </option>
+            ))}
+          </select>
+          {batchFilter !== "All" ? (
+            <button
+              onClick={() => setBatchFilter("All")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer z-10"
+              title="Clear batch filter"
+            >
+              <X size={14} />
+            </button>
+          ) : (
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          )}
+        </div>
+
         <span className="text-sm text-neutral-500 sm:ml-auto">
           {filteredLeads.length === 0
             ? "0 leads"
@@ -852,7 +897,14 @@ export default function MailerPage() {
                       </td>
                       <td className="p-4">
                         <h4 className="font-semibold text-sm">{lead.name}</h4>
-                        <p className="text-xs text-neutral-500">{lead.company}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs text-neutral-500">{lead.company}</p>
+                          {lead.batch && lead.batch !== 'N/A' && (
+                            <span className="inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/50">
+                              {lead.batch}
+                            </span>
+                          )}
+                        </div>
                         {hasEmail ? (
                           <p className="text-xs text-neutral-400 flex items-center gap-1 mt-0.5"><Mail size={10} /> {lead.email}</p>
                         ) : (

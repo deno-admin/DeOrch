@@ -84,6 +84,7 @@ export default function LeadsImportPage() {
             const statusVal = getCol(['status']);
             const scoreStr = getCol(['score']);
             const webScoreStr = getCol(['website score', 'websitescore', 'website_score']);
+            const batchVal = getCol(['batch']);
 
             newLeadsData.push({
               name: name,
@@ -96,6 +97,7 @@ export default function LeadsImportPage() {
               status: statusVal !== 'N/A' ? statusVal : "New",
               score: scoreStr !== 'N/A' ? parseInt(scoreStr, 10) || 0 : 0,
               website_score: webScoreStr !== 'N/A' ? parseInt(webScoreStr, 10) || 0 : 0,
+              batch: batchVal !== 'N/A' ? batchVal : null,
             });
           }
 
