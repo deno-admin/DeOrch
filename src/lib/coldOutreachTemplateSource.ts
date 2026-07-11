@@ -180,10 +180,25 @@ a[x-apple-data-detectors],
                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-spacing:0px">
                     <tbody>
                      <tr>
-                      <td align="center" style="padding:40px 30px 15px;Margin:0"><p style="Margin:0;mso-line-height-rule:exactly;font-family:verdana, geneva, sans-serif;text-align:center;line-height:32px;letter-spacing:0;font-weight:normal;color:#ffffff;font-size:24px">{{closing_line}}</p></td>
-                     </tr>
-                     <tr>
-                      <td align="center" style="padding:0;Margin:0;font-size:0"><img alt="" width="600" src="https://res.cloudinary.com/dyrgglujy/image/upload/c_crop,x_0,y_185,w_1024,h_387/v1783699928/img_sm9mls.jpg" class="adapt-img" style="display:block;font-size:14px;border:0;outline:none;text-decoration:none;margin:0"></td>
+                      <td align="center" valign="top" background="https://res.cloudinary.com/dyrgglujy/image/upload/v1783747869/img_khfg5u.jpg" bgcolor="#5180f9" style="Margin:0;padding:0;background-repeat:no-repeat;background-position:top center;background-size:cover;background-image:url('https://res.cloudinary.com/dyrgglujy/image/upload/v1783747869/img_khfg5u.jpg')"><!--[if mso]>
+                      <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;height:335px;">
+                      <v:fill type="frame" src="https://res.cloudinary.com/dyrgglujy/image/upload/v1783747869/img_khfg5u.jpg" color="#5180f9" />
+                      <v:textbox inset="0,0,0,0">
+                      <![endif]-->
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-spacing:0px">
+                       <tbody>
+                        <tr>
+                         <td align="center" style="padding:45px 30px 0;Margin:0;height:150px"><p style="Margin:0;mso-line-height-rule:exactly;font-family:verdana, geneva, sans-serif;text-align:center;line-height:32px;letter-spacing:0;font-weight:normal;color:#ffffff;font-size:24px">{{closing_line}}</p></td>
+                        </tr>
+                        <tr>
+                         <td style="padding:0;Margin:0;font-size:0;line-height:0;height:185px">&nbsp;</td>
+                        </tr>
+                       </tbody>
+                      </table>
+                      <!--[if mso]>
+                      </v:textbox>
+                      </v:rect>
+                      <![endif]--></td>
                      </tr>
                     </tbody>
                    </table></td>
