@@ -110,6 +110,7 @@ export async function POST(request: Request) {
         firstName: (lead.name || "").split(" ")[0],
         draftText,
         unsubscribeUrl,
+        stage,
       });
 
       try {

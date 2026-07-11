@@ -180,7 +180,10 @@ a[x-apple-data-detectors],
                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-spacing:0px">
                     <tbody>
                      <tr>
-                      <td align="center" style="padding:0;Margin:0;font-size:0"><img alt="" width="600" src="https://res.cloudinary.com/dyrgglujy/image/upload/v1783699928/img_sm9mls.jpg" class="adapt-img" style="display:block;font-size:14px;border:0;outline:none;text-decoration:none;margin:0"></td>
+                      <td align="center" style="padding:40px 30px 15px;Margin:0"><p style="Margin:0;mso-line-height-rule:exactly;font-family:verdana, geneva, sans-serif;text-align:center;line-height:32px;letter-spacing:0;font-weight:normal;color:#ffffff;font-size:24px">{{closing_line}}</p></td>
+                     </tr>
+                     <tr>
+                      <td align="center" style="padding:0;Margin:0;font-size:0"><img alt="" width="600" src="https://res.cloudinary.com/dyrgglujy/image/upload/c_crop,x_0,y_185,w_1024,h_387/v1783699928/img_sm9mls.jpg" class="adapt-img" style="display:block;font-size:14px;border:0;outline:none;text-decoration:none;margin:0"></td>
                      </tr>
                     </tbody>
                    </table></td>
@@ -269,6 +272,15 @@ const TAGLINES = [
   "Just something I thought you'd want to see.",
 ];
 
+const CLOSING_LINES: Record<string, string> = {
+  initial: "Thank you for your time and consideration.",
+  follow_up_1: "Thanks again for your time — happy to answer any questions.",
+  follow_up_2: "Appreciate you taking a look — the offer still stands.",
+  follow_up_3: "Thanks for reading — just checking back in, no pressure.",
+  follow_up_4: "Thanks for bearing with the follow-ups — happy to help anytime.",
+  follow_up_5: "Last note from me — thanks for your time either way.",
+};
+
 function pickRandom<T>(options: T[]): T {
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -300,19 +312,23 @@ export function renderColdOutreachEmail({
   firstName,
   draftText,
   unsubscribeUrl,
+  stage = "initial",
 }: {
   companyName: string;
   firstName: string;
   draftText: string;
   unsubscribeUrl: string;
+  stage?: string;
 }): string {
   const safeCompanyName = escapeHtml(companyName || "your team");
   const safeFirstName = escapeHtml(firstName || "there");
   const hookLine = fillMergeFields(pickRandom(HOOK_LINES), safeCompanyName, safeFirstName);
   const tagline = fillMergeFields(pickRandom(TAGLINES), safeCompanyName, safeFirstName);
+  const closingLine = CLOSING_LINES[stage] || CLOSING_LINES.initial;
 
   return COLD_OUTREACH_TEMPLATE.replace("{{hook_line}}", hookLine)
     .replace("{{tagline}}", tagline)
     .replace("{{email_body_html}}", draftTextToHtml(draftText))
+    .replace("{{closing_line}}", closingLine)
     .replaceAll("{{unsubscribe_url}}", unsubscribeUrl);
 }

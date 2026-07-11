@@ -3,7 +3,7 @@ import { renderColdOutreachEmail } from "@/lib/coldOutreachTemplateSource";
 
 export async function POST(request: Request) {
   try {
-    const { companyName, firstName, draftText } = await request.json();
+    const { companyName, firstName, draftText, stage } = await request.json();
 
     if (!draftText || typeof draftText !== "string") {
       return NextResponse.json({ error: "draftText is required" }, { status: 400 });
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       firstName: firstName || "",
       draftText,
       unsubscribeUrl,
+      stage: typeof stage === "string" ? stage : "initial",
     });
 
     return NextResponse.json({ html });
