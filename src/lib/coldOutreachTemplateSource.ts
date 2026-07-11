@@ -188,7 +188,7 @@ a[x-apple-data-detectors],
                       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-spacing:0px">
                        <tbody>
                         <tr>
-                         <td align="center" style="padding:45px 30px 0;Margin:0;height:150px"><p style="Margin:0;mso-line-height-rule:exactly;font-family:verdana, geneva, sans-serif;text-align:center;line-height:32px;letter-spacing:0;font-weight:normal;color:#ffffff;font-size:24px">{{closing_line}}</p></td>
+                         <td align="center" style="padding:25px 30px 0;Margin:0;height:150px"><p style="Margin:0;mso-line-height-rule:exactly;font-family:verdana, geneva, sans-serif;text-align:center;line-height:32px;letter-spacing:0;font-weight:normal;color:#ffffff;font-size:24px">{{closing_line}}</p></td>
                         </tr>
                         <tr>
                          <td style="padding:0;Margin:0;font-size:0;line-height:0;height:185px">&nbsp;</td>
@@ -287,13 +287,13 @@ const TAGLINES = [
   "Just something I thought you'd want to see.",
 ];
 
-const CLOSING_LINES: Record<string, string> = {
-  initial: "Thank you for your time and consideration.",
-  follow_up_1: "Thanks again for your time — happy to answer any questions.",
-  follow_up_2: "Appreciate you taking a look — the offer still stands.",
-  follow_up_3: "Thanks for reading — just checking back in, no pressure.",
-  follow_up_4: "Thanks for bearing with the follow-ups — happy to help anytime.",
-  follow_up_5: "Last note from me — thanks for your time either way.",
+const CLOSING_LINES: Record<string, [string, string]> = {
+  initial: ["Thank you for your time", "and consideration."],
+  follow_up_1: ["Thanks again for your time —", "happy to answer any questions."],
+  follow_up_2: ["Appreciate you taking a look —", "the offer still stands."],
+  follow_up_3: ["Thanks for reading — just", "checking back in, no pressure."],
+  follow_up_4: ["Thanks for bearing with the", "follow-ups — happy to help anytime."],
+  follow_up_5: ["Last note from me — thanks", "for your time either way."],
 };
 
 function pickRandom<T>(options: T[]): T {
@@ -339,11 +339,12 @@ export function renderColdOutreachEmail({
   const safeFirstName = escapeHtml(firstName || "there");
   const hookLine = fillMergeFields(pickRandom(HOOK_LINES), safeCompanyName, safeFirstName);
   const tagline = fillMergeFields(pickRandom(TAGLINES), safeCompanyName, safeFirstName);
-  const closingLine = CLOSING_LINES[stage] || CLOSING_LINES.initial;
+  const [closingLine1, closingLine2] = CLOSING_LINES[stage] || CLOSING_LINES.initial;
+  const closingLineHtml = `${closingLine1}<br>${closingLine2}`;
 
   return COLD_OUTREACH_TEMPLATE.replace("{{hook_line}}", hookLine)
     .replace("{{tagline}}", tagline)
     .replace("{{email_body_html}}", draftTextToHtml(draftText))
-    .replace("{{closing_line}}", closingLine)
+    .replace("{{closing_line}}", closingLineHtml)
     .replaceAll("{{unsubscribe_url}}", unsubscribeUrl);
 }
