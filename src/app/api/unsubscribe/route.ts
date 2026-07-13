@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getLeadsAdminClient } from "@/lib/supabaseAdmin";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribeToken";
 
@@ -23,8 +23,18 @@ async function unsubscribe(request: Request) {
     });
   }
 
-  const leadsAdmin = getLeadsAdminClient();
-  await leadsAdmin.from("clay_outreach_leads").update({ status: "Unsubscribed" }).eq("id", leadId);
+  // Send the confirmation page immediately and do the DB write after the
+  // response is flushed. Analytics showed this route had the worst LCP of
+  // any page on the site (P90 17.5s, P99 37s, 36% "poor") because the browser
+  // was blocked on the Supabase round-trip before anything could paint.
+  after(async () => {
+    const leadsAdmin = getLeadsAdminClient();
+    const { error } = await leadsAdmin
+      .from("clay_outreach_leads")
+      .update({ status: "Unsubscribed" })
+      .eq("id", leadId);
+    if (error) console.error("unsubscribe: failed to update lead status", leadId, error);
+  });
 
   return new NextResponse(confirmationPage("You've been unsubscribed and won't receive further emails from us."), {
     status: 200,

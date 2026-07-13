@@ -14,7 +14,8 @@ import {
   MailX,
   ChevronDown,
   Tag,
-  Eye
+  Eye,
+  RefreshCw
 } from "lucide-react";
 import Link from "next/link";
 import { supabaseLeads } from "@/lib/supabaseLeads";
@@ -44,7 +45,7 @@ interface MailerLead {
   batch: string | null;
 }
 
-const CRM_STATUSES = ["New", "Qualified", "Contacted", "Follow Up", "Replied", "Meeting Scheduled", "Not Interested", "Unsubscribed"];
+const CRM_STATUSES = ["New", "Qualified", "Contacted", "Follow Up", "Replied", "Meeting Scheduled", "Not Interested", "Unsubscribed", "Wrong ICP"];
 
 interface StageConfig {
   id: string;
@@ -91,6 +92,7 @@ function StatusDot({ status }: { status: string }) {
     'Meeting Scheduled': 'bg-indigo-500',
     'Not Interested': 'bg-rose-500',
     'Unsubscribed': 'bg-neutral-400',
+    'Wrong ICP': 'bg-orange-500',
   };
   return <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${colors[status] || 'bg-neutral-500'}`} />;
 }
@@ -98,6 +100,7 @@ function StatusDot({ status }: { status: string }) {
 export default function MailerPage() {
   const [leads, setLeads] = useState<MailerLead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [emailFilter, setEmailFilter] = useState<EmailFilter>("with");
   const [researchFilter, setResearchFilter] = useState<ResearchFilter>("all");
@@ -144,8 +147,8 @@ export default function MailerPage() {
     return () => window.removeEventListener("scroll", handleClose, true);
   }, []);
 
-  const fetchLeads = async () => {
-    setIsLoading(true);
+  const fetchLeads = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
 
     // Supabase/PostgREST caps each request at its configured max-rows (1000 by
     // default), so a single unbounded query silently truncates the result once
@@ -183,7 +186,7 @@ export default function MailerPage() {
       status: l.status ? (CRM_STATUSES.find(s => s.toLowerCase() === l.status!.toLowerCase()) || l.status) : 'New'
     }));
     setLeads(normalizedData);
-    setIsLoading(false);
+    if (!opts?.silent) setIsLoading(false);
   };
 
   const checkSmtpConfigured = async () => {
@@ -193,6 +196,15 @@ export default function MailerPage() {
       setSmtpConfigured(!!data.hasPassword);
     } catch {
       setSmtpConfigured(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchLeads({ silent: true });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -216,9 +228,9 @@ export default function MailerPage() {
 
   const notSentCount = leads.filter(l => {
     const hasDraft = !!l[currentStageConfig.draftKey];
-    if (activeStage === "initial") return l.email_sent_status !== "success" && l.email_sent_status !== "failed" && hasDraft;
     const leadStatus = (l.status || "").toLowerCase().trim();
-    const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested";
+    const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
+    if (activeStage === "initial") return l.email_sent_status !== "success" && l.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
     return !l[currentStageConfig.sentAtKey] && hasDraft && !isExcludedStatus;
   }).length;
 
@@ -240,16 +252,15 @@ export default function MailerPage() {
   const matchesStatusFilter = (lead: MailerLead) => {
     const hasDraft = !!lead[currentStageConfig.draftKey];
     const isSent = !!lead[currentStageConfig.sentAtKey];
+    const leadStatus = (lead.status || "").toLowerCase().trim();
+    const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
 
     if (activeStage === "initial") {
       if (statusFilter === "sent") return lead.email_sent_status === "success";
       if (statusFilter === "failed") return lead.email_sent_status === "failed";
-      if (statusFilter === "not_sent") return lead.email_sent_status !== "success" && lead.email_sent_status !== "failed" && hasDraft;
+      if (statusFilter === "not_sent") return lead.email_sent_status !== "success" && lead.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
     } else {
-      const leadStatus = (lead.status || "").toLowerCase().trim();
-      const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested";
-
       if (statusFilter === "sent") return isSent;
       if (statusFilter === "not_sent") return !isSent && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
@@ -339,11 +350,9 @@ export default function MailerPage() {
       ? lead.email_sent_status === "success" 
       : !!lead[currentStageConfig.sentAtKey];
 
-    if (activeStage !== "initial") {
-      const leadStatus = (lead.status || "").toLowerCase().trim();
-      if (leadStatus === "unsubscribed" || leadStatus === "not interested") {
-        return false;
-      }
+    const leadStatus = (lead.status || "").toLowerCase().trim();
+    if (leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp") {
+      return false;
     }
 
     return hasEmail && hasDraft && !isSent;
@@ -518,6 +527,9 @@ export default function MailerPage() {
       case 'Unsubscribed':
       case 'unsubscribed':
         return 'bg-neutral-50 text-neutral-600 dark:bg-neutral-500/10 dark:text-neutral-400 border-neutral-200 dark:border-neutral-500/20';
+      case 'Wrong ICP':
+      case 'wrong icp':
+        return 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400 border-orange-200 dark:border-orange-500/20';
       default:
         return 'bg-neutral-50 text-neutral-700 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700';
     }
@@ -552,7 +564,7 @@ export default function MailerPage() {
     }
 
     const leadStatus = (lead.status || "").toLowerCase().trim();
-    if (activeStage !== "initial" && (leadStatus === "unsubscribed" || leadStatus === "not interested")) {
+    if (leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp") {
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800">
           Skipped ({lead.status})
@@ -655,6 +667,16 @@ export default function MailerPage() {
               </button>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            title="Refresh leads from the database"
+            className="px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2 text-neutral-700 dark:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} /> Refresh
+          </button>
 
           <Link
             href="/settings"
@@ -882,7 +904,7 @@ export default function MailerPage() {
                     : !!lead[currentStageConfig.sentAtKey];
 
                   const leadStatus = (lead.status || "").toLowerCase().trim();
-                  const isExcludedStatus = activeStage !== "initial" && (leadStatus === "unsubscribed" || leadStatus === "not interested");
+                  const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
 
                   return (
                     <tr key={lead.id} className={`hover:bg-neutral-50/50 dark:hover:bg-neutral-800/20 transition-colors ${!hasEmail ? "opacity-60" : ""}`}>

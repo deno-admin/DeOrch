@@ -80,10 +80,12 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // Do not send followups to unsubscribed or not interested leads
-      if (stage !== "initial") {
+      // Do not send to unsubscribed or not interested leads, at any stage
+      // (including the initial email — a lead already marked Unsubscribed
+      // should never receive a first email either).
+      {
         const leadStatus = (lead.status || "").toLowerCase().trim();
-        if (leadStatus === "unsubscribed" || leadStatus === "not interested") {
+        if (leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp") {
           results.push({
             leadId: lead.id,
             success: false,
