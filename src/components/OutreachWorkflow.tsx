@@ -83,7 +83,7 @@ export default function OutreachWorkflow() {
     setIsLoading(true);
     try {
       const { data, error } = await supabaseLeads
-        .from('clay_outreach_leads')
+        .from('deorch_leads')
         .select('*')
         .order('id', { ascending: true });
 
@@ -188,7 +188,7 @@ export default function OutreachWorkflow() {
     ];
 
     try {
-      await supabaseLeads.from('clay_outreach_leads').insert(sampleLeadsToInsert);
+      await supabaseLeads.from('deorch_leads').insert(sampleLeadsToInsert);
       await fetchLeads();
     } catch (err) {
       console.error("Error seeding leads:", err);
@@ -309,7 +309,7 @@ Alex`;
           const linkedinDraft = `Hi ${activeLead.name.split(" ")[0]}! Saw your profile as ${activeLead.role} at ${activeLead.company}. Congrats on the traction in ${activeLead.industry}! Would love to connect and share a few cost-saving automation tactics we've been testing. Cheers!`;
 
           supabaseLeads
-            .from('clay_outreach_leads')
+            .from('deorch_leads')
             .update({
               outreach_status: 'generated',
               email_draft: emailDraft,
@@ -336,7 +336,7 @@ Alex`;
     if (!activeLead) return;
     try {
       await supabaseLeads
-        .from('clay_outreach_leads')
+        .from('deorch_leads')
         .update({
           outreach_status: 'reviewed',
           email_draft: editedEmail,
@@ -374,7 +374,7 @@ Alex`;
     try {
       for (const lead of leadsToProcess) {
         await supabaseLeads
-          .from('clay_outreach_leads')
+          .from('deorch_leads')
           .update({
             outreach_status: 'sending',
             email_sent_status: 'sending',
@@ -387,7 +387,7 @@ Alex`;
       setTimeout(async () => {
         for (const lead of leadsToProcess) {
           await supabaseLeads
-            .from('clay_outreach_leads')
+            .from('deorch_leads')
             .update({ email_sent_status: 'success' })
             .eq('id', lead.id);
         }
@@ -402,7 +402,7 @@ Alex`;
       setTimeout(async () => {
         for (const lead of leadsToProcess) {
           await supabaseLeads
-            .from('clay_outreach_leads')
+            .from('deorch_leads')
             .update({
               outreach_status: 'sent',
               linkedin_sent_status: 'success'
@@ -431,7 +431,7 @@ Alex`;
       // Clear out drafts/statuses to default
       for (const lead of leads) {
         await supabaseLeads
-          .from('clay_outreach_leads')
+          .from('deorch_leads')
           .update({
             outreach_status: 'idle',
             email_draft: '',

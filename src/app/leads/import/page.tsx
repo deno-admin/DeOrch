@@ -102,7 +102,7 @@ export default function LeadsImportPage() {
           }
 
           if (newLeadsData.length > 0) {
-            const { error } = await supabaseLeads.from('clay_outreach_leads').insert(newLeadsData);
+            const { error } = await supabaseLeads.from('deorch_leads').insert(newLeadsData);
             if (error) throw error;
             setUploadStatus({ success: true, message: `Successfully imported ${newLeadsData.length} leads.` });
             setTimeout(() => router.push('/leads'), 2000);

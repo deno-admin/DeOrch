@@ -6,24 +6,43 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const sendTestTo: string | undefined = body?.sendTestTo;
+    const id: number | undefined = body?.id;
 
     const admin = getDeOrchAdminClient();
-    const { data: config, error } = await admin
-      .from("smtp_settings")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
+    let config: any = null;
 
-    if (error || !config) {
-      return NextResponse.json({ error: "SMTP not configured yet." }, { status: 400 });
+    if (id) {
+      const { data, error } = await admin
+        .from("smtp_settings")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error || !data) {
+        return NextResponse.json({ error: "SMTP configuration not found." }, { status: 400 });
+      }
+      config = data;
+    } else {
+      const { data, error } = await admin
+        .from("smtp_settings")
+        .select("*");
+
+      if (error || !data || data.length === 0) {
+        return NextResponse.json({ error: "SMTP not configured yet." }, { status: 400 });
+      }
+
+      // Find the active one or fallback to the first
+      config = data.find((c: any) => c.username.endsWith("::active")) || data[0];
     }
+
+    const cleanUsername = config.username.replace(/::active$/, "");
 
     const transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.secure,
       auth: {
-        user: config.username,
+        user: cleanUsername,
         pass: config.password,
       },
     });

@@ -78,7 +78,7 @@ export default function LeadsPage() {
     let from = 0;
     while (true) {
       const { data, error } = await supabaseLeads
-        .from('clay_outreach_leads')
+        .from('deorch_leads')
         .select('*')
         .order('id', { ascending: false })
         .range(from, from + CHUNK_SIZE - 1);
@@ -455,7 +455,7 @@ export default function LeadsPage() {
           }
 
           if (newLeadsData.length > 0) {
-            const { data, error } = await supabaseLeads.from('clay_outreach_leads').insert(newLeadsData).select();
+            const { data, error } = await supabaseLeads.from('deorch_leads').insert(newLeadsData).select();
             if (error) {
               console.error("Error inserting leads:", error);
             }
@@ -474,13 +474,13 @@ export default function LeadsPage() {
 
   const handleStatusChange = async (leadId: number, newStatus: string) => {
     setLeads(leads.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
-    await supabaseLeads.from('clay_outreach_leads').update({ status: newStatus }).eq('id', leadId);
+    await supabaseLeads.from('deorch_leads').update({ status: newStatus }).eq('id', leadId);
   };
 
   const handleSingleStatusChange = async (leadId: number, newStatus: string) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     const { error } = await supabaseLeads
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update({ status: newStatus })
       .eq("id", leadId);
 
@@ -494,20 +494,20 @@ export default function LeadsPage() {
   const handleScoreChange = async (leadId: number, type: 'score' | 'websiteScore', value: number) => {
     setLeads(leads.map(l => l.id === leadId ? { ...l, [type]: value } : l));
     const dbField = type === 'websiteScore' ? 'website_score' : type;
-    await supabaseLeads.from('clay_outreach_leads').update({ [dbField]: value }).eq('id', leadId);
+    await supabaseLeads.from('deorch_leads').update({ [dbField]: value }).eq('id', leadId);
   };
 
   const handleDeleteLead = async (leadId: number) => {
     setLeads(leads.filter(l => l.id !== leadId));
     setOpenDropdownId(null);
-    await supabaseLeads.from('clay_outreach_leads').delete().eq('id', leadId);
+    await supabaseLeads.from('deorch_leads').delete().eq('id', leadId);
   };
 
   const updateBulkCRMStatus = async (newStatus: string) => {
     if (selectedIds.length === 0) return;
     setIsLoading(true);
     const { error } = await supabaseLeads
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update({ status: newStatus })
       .in("id", selectedIds);
 
@@ -526,7 +526,7 @@ export default function LeadsPage() {
     if (!confirm(`Are you sure you want to delete ${selectedIds.length} lead(s)?`)) return;
     setIsLoading(true);
     const { error } = await supabaseLeads
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .delete()
       .in("id", selectedIds);
 
@@ -583,11 +583,11 @@ export default function LeadsPage() {
 
     if (editingLead) {
       setLeads(leads.map(l => l.id === editingLead.id ? { ...l, ...newLeadData } : l));
-      await supabaseLeads.from('clay_outreach_leads').update(dbPayload).eq('id', editingLead.id);
+      await supabaseLeads.from('deorch_leads').update(dbPayload).eq('id', editingLead.id);
     } else {
       const tempId = Date.now();
       setLeads([{ id: tempId, ...newLeadData }, ...leads]);
-      const { data, error } = await supabaseLeads.from('clay_outreach_leads').insert([dbPayload]).select();
+      const { data, error } = await supabaseLeads.from('deorch_leads').insert([dbPayload]).select();
       if (data && data[0]) {
         setLeads(prev => prev.map(l => l.id === tempId ? { ...data[0], websiteScore: data[0].website_score } : l));
       }

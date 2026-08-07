@@ -159,7 +159,7 @@ export default function MailerPage() {
     let from = 0;
     while (true) {
       const { data, error } = await supabaseLeads
-        .from("clay_outreach_leads")
+        .from("deorch_leads")
         .select(`
           id, name, company, email, subject, email_draft, research_points, email_sent_status, email_sent_at,
           email_follow_up_1, email_follow_up_2, email_follow_up_3, email_follow_up_4, email_follow_up_5,
@@ -193,7 +193,12 @@ export default function MailerPage() {
     try {
       const res = await fetch("/api/settings/smtp");
       const data = await res.json();
-      setSmtpConfigured(!!data.hasPassword);
+      if (Array.isArray(data)) {
+        const active = data.find(c => c.isActive) || data[0];
+        setSmtpConfigured(!!active?.hasPassword);
+      } else {
+        setSmtpConfigured(!!data.hasPassword);
+      }
     } catch {
       setSmtpConfigured(false);
     }
@@ -426,7 +431,7 @@ export default function MailerPage() {
     if (selectedIds.length === 0) return;
     setIsLoading(true);
     const { error } = await supabaseLeads
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update({ status: newStatus })
       .in("id", selectedIds);
 
@@ -442,7 +447,7 @@ export default function MailerPage() {
   const handleSingleStatusChange = async (leadId: number, newStatus: string) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     const { error } = await supabaseLeads
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update({ status: newStatus })
       .eq("id", leadId);
 
@@ -481,7 +486,7 @@ export default function MailerPage() {
     };
 
     const { error } = await supabaseLeads
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update(updatePayload)
       .eq("id", editingLead.id);
 

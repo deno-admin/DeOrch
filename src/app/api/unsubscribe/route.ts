@@ -30,7 +30,7 @@ async function unsubscribe(request: Request) {
   after(async () => {
     const leadsAdmin = getLeadsAdminClient();
     const { error } = await leadsAdmin
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update({ status: "Unsubscribed" })
       .eq("id", leadId);
     if (error) console.error("unsubscribe: failed to update lead status", leadId, error);

@@ -185,14 +185,14 @@ Ensure the output is valid JSON.`;
     }
 
     // Step 3: Write findings to Supabase
-    // research_points is a plain TEXT column on clay_outreach_leads (not TEXT[]),
+    // research_points is a plain TEXT column on deorch_leads (not TEXT[]),
     // so the array Gemini returns must be joined before writing.
     const researchPointsForDb = Array.isArray(analysisResult.research_points)
       ? analysisResult.research_points.join("\n\n")
       : analysisResult.research_points;
 
     const { error: dbError } = await getLeadsAdminClient()
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .update({
         industry: analysisResult.industry,
         funding_stage: analysisResult.funding_stage,

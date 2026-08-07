@@ -37,22 +37,24 @@ export async function POST(request: Request) {
     }
 
     const deOrchAdmin = getDeOrchAdminClient();
-    const { data: smtpConfig, error: smtpError } = await deOrchAdmin
+    const { data: smtpConfigs, error: smtpError } = await deOrchAdmin
       .from("smtp_settings")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
+      .select("*");
 
-    if (smtpError || !smtpConfig) {
+    if (smtpError || !smtpConfigs || smtpConfigs.length === 0) {
       return NextResponse.json(
         { error: "SMTP not configured. Visit Settings to set it up." },
         { status: 400 }
       );
     }
 
+    // Find the active SMTP config, fallback to the first saved one
+    const smtpConfig = smtpConfigs.find(c => c.username.endsWith("::active")) || smtpConfigs[0];
+    const cleanUsername = smtpConfig.username.replace(/::active$/, "");
+
     const leadsAdmin = getLeadsAdminClient();
     const { data, error: leadsError } = await leadsAdmin
-      .from("clay_outreach_leads")
+      .from("deorch_leads")
       .select(`id, email, name, company, subject, status, ${draftColumn}`)
       .in("id", leadIds);
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
       port: smtpConfig.port,
       secure: smtpConfig.secure,
       auth: {
-        user: smtpConfig.username,
+        user: cleanUsername,
         pass: smtpConfig.password,
       },
     });
@@ -138,7 +140,7 @@ export async function POST(request: Request) {
         }
 
         await leadsAdmin
-          .from("clay_outreach_leads")
+          .from("deorch_leads")
           .update(updatePayload)
           .eq("id", lead.id);
 
@@ -149,7 +151,7 @@ export async function POST(request: Request) {
 
         if (stage === "initial") {
           await leadsAdmin
-            .from("clay_outreach_leads")
+            .from("deorch_leads")
             .update({ email_sent_status: "failed" })
             .eq("id", lead.id);
         }
