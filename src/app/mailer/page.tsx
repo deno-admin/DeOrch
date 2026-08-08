@@ -794,7 +794,7 @@ export default function MailerPage() {
             <TabButton active={researchFilter === "without"} onClick={() => setResearchFilter("without")}>Without Research ({withoutResearchCount})</TabButton>
           </div>
         </div>
-        <div className="flex space-x-1 bg-neutral-100 dark:bg-neutral-850/50 p-1 rounded-lg w-fit overflow-x-auto">
+        <div className="flex space-x-1 bg-neutral-100 dark:bg-neutral-800/50 p-1 rounded-lg w-fit overflow-x-auto">
           <TabButton active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>All Statuses</TabButton>
           <TabButton active={statusFilter === "not_sent"} onClick={() => setStatusFilter("not_sent")}>Ready ({notSentCount})</TabButton>
           <TabButton active={statusFilter === "sent"} onClick={() => setStatusFilter("sent")}>Sent ({sentCount})</TabButton>
