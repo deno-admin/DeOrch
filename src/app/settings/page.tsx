@@ -454,8 +454,8 @@ export default function SettingsPage() {
             </div>
 
             <form onSubmit={handleSave} className="p-5 space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2 space-y-1.5">
                   <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Host</label>
                   <input
                     required
@@ -477,7 +477,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Username</label>
                   <input
@@ -506,7 +506,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">From Name</label>
                   <input

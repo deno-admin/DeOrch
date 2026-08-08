@@ -53,7 +53,7 @@ function NavItem({ icon, label, href, badge, isSubItem }: { icon: React.ReactNod
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
   if (pathname === "/login") {
@@ -118,6 +118,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+
+      {/* Sidebar Mobile Backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-neutral-950/40 dark:bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
