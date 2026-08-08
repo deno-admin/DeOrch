@@ -731,8 +731,7 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Horizontal Sequence Stepper */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="flex overflow-x-auto lg:grid lg:grid-cols-6 gap-3 pb-3 lg:pb-0 mb-6 snap-x scrollbar-none [-ms-overflow-style:'none'] [scrollbar-width:'none'] [&::-webkit-scrollbar]:hidden">
         {STAGES.map((s) => {
           const isStageActive = activeStage === s.id;
           const stageSentCount = leads.filter(l => !!l[s.sentAtKey]).length;
@@ -742,7 +741,7 @@ export default function LeadsPage() {
             <button
               key={s.id}
               onClick={() => setActiveStage(s.id)}
-              className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+              className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer snap-align-start shrink-0 w-[160px] sm:w-[180px] lg:w-auto ${
                 isStageActive
                   ? "border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 shadow-sm ring-1 ring-indigo-500"
                   : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800"
