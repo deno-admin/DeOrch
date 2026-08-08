@@ -15,7 +15,8 @@ import {
   ChevronDown,
   Tag,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Filter
 } from "lucide-react";
 import Link from "next/link";
 import { supabaseLeads } from "@/lib/supabaseLeads";
@@ -126,6 +127,7 @@ export default function MailerPage() {
   const [batchFilter, setBatchFilter] = useState<string>("All");
   const [openStatusId, setOpenStatusId] = useState<number | null>(null);
   const [statusPos, setStatusPos] = useState({ top: 0, left: 0, width: 0 });
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const PAGE_SIZE = 200;
   const [currentPage, setCurrentPage] = useState(1);
@@ -314,6 +316,15 @@ export default function MailerPage() {
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [leads, activeStage]);
+
+  const activeFiltersCount = [
+    emailFilter !== "with" ? 1 : 0,
+    researchFilter !== "all" ? 1 : 0,
+    statusFilter !== "all" ? 1 : 0,
+    leadStatusFilter !== "All" ? 1 : 0,
+    batchFilter !== "All" ? 1 : 0,
+    dateFilter !== "" ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
 
   const filteredLeads = leads.filter(lead => {
     const matchesEmail = matchesEmailFilter(lead);
@@ -742,7 +753,36 @@ export default function MailerPage() {
         })}
       </div>
 
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-4">
+      {/* Mobile Search & Filter Row */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6 lg:hidden w-full">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <input 
+            type="text" 
+            placeholder="Search leads..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsMobileFiltersOpen(true)}
+            className="flex-1 sm:flex-none px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-sm relative cursor-pointer"
+          >
+            <Filter size={16} className="text-neutral-500" />
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-scale-in">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Filter tab bars */}
+      <div className="hidden lg:flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex space-x-1 bg-neutral-100 dark:bg-neutral-800/50 p-1 rounded-lg w-fit overflow-x-auto">
             <TabButton active={emailFilter === "all"} onClick={() => setEmailFilter("all")}>All Emails ({leads.length})</TabButton>
@@ -755,7 +795,7 @@ export default function MailerPage() {
             <TabButton active={researchFilter === "without"} onClick={() => setResearchFilter("without")}>Without Research ({withoutResearchCount})</TabButton>
           </div>
         </div>
-        <div className="flex space-x-1 bg-neutral-100 dark:bg-neutral-800/50 p-1 rounded-lg w-fit overflow-x-auto">
+        <div className="flex space-x-1 bg-neutral-100 dark:bg-neutral-850/50 p-1 rounded-lg w-fit overflow-x-auto">
           <TabButton active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>All Statuses</TabButton>
           <TabButton active={statusFilter === "not_sent"} onClick={() => setStatusFilter("not_sent")}>Ready ({notSentCount})</TabButton>
           <TabButton active={statusFilter === "sent"} onClick={() => setStatusFilter("sent")}>Sent ({sentCount})</TabButton>
@@ -766,7 +806,8 @@ export default function MailerPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+      {/* Desktop Toolbar */}
+      <div className="hidden lg:flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
@@ -871,6 +912,134 @@ export default function MailerPage() {
             : `Showing ${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, filteredLeads.length)} of ${filteredLeads.length} leads`}
         </span>
       </div>
+
+      {/* Mobile Filters Modal */}
+      {isMobileFiltersOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200 lg:hidden" onClick={() => setIsMobileFiltersOpen(false)}>
+          <div 
+            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
+              <h2 className="text-lg font-bold flex items-center gap-2"><Filter size={18} className="text-indigo-500" /> Filters</h2>
+              <button 
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto space-y-6 flex-1 text-sm">
+              {/* Tab Filters */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Email Status</label>
+                  <div className="flex flex-wrap gap-1.5 bg-neutral-100 dark:bg-neutral-950 p-1.5 rounded-xl">
+                    <button onClick={() => setEmailFilter("all")} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${emailFilter === 'all' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>All</button>
+                    <button onClick={() => setEmailFilter("with")} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${emailFilter === 'with' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>With Email</button>
+                    <button onClick={() => setEmailFilter("without")} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${emailFilter === 'without' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>Without</button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Research Points</label>
+                  <div className="flex flex-wrap gap-1.5 bg-neutral-100 dark:bg-neutral-950 p-1.5 rounded-xl">
+                    <button onClick={() => setResearchFilter("all")} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${researchFilter === 'all' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>All</button>
+                    <button onClick={() => setResearchFilter("with")} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${researchFilter === 'with' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>With Research</button>
+                    <button onClick={() => setResearchFilter("without")} className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${researchFilter === 'without' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>Without</button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Outreach Status</label>
+                  <div className="flex flex-wrap gap-1.5 bg-neutral-100 dark:bg-neutral-950 p-1.5 rounded-xl">
+                    <button onClick={() => setStatusFilter("all")} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === 'all' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>All</button>
+                    <button onClick={() => setStatusFilter("not_sent")} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === 'not_sent' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>Ready</button>
+                    <button onClick={() => setStatusFilter("sent")} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === 'sent' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>Sent</button>
+                    {activeStage === "initial" && (
+                      <button onClick={() => setStatusFilter("failed")} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === 'failed' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>Failed</button>
+                    )}
+                    <button onClick={() => setStatusFilter("no_draft")} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === 'no_draft' ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-neutral-500'}`}>No Draft</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Select Dropdowns */}
+              <div className="space-y-4 border-t border-neutral-100 dark:border-neutral-850 pt-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-500">{activeStage === "initial" ? "Sent Date" : "Prev Sent Date"}</label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm outline-none text-neutral-700 dark:text-neutral-300"
+                  >
+                    <option value="">All Dates</option>
+                    {availableDates.map(({ date, count }) => (
+                      <option key={date} value={date}>
+                        {formatDateString(date)} ({count} {count === 1 ? "lead" : "leads"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-500">Lead Status</label>
+                  <select
+                    value={leadStatusFilter}
+                    onChange={(e) => setLeadStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm outline-none text-neutral-700 dark:text-neutral-300"
+                  >
+                    <option value="All">All Statuses</option>
+                    {CRM_STATUSES.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-500">Batch</label>
+                  <select
+                    value={batchFilter}
+                    onChange={(e) => setBatchFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm outline-none text-neutral-700 dark:text-neutral-300"
+                  >
+                    <option value="All">All Batches</option>
+                    {availableBatches.map(({ batch, count }) => (
+                      <option key={batch} value={batch}>
+                        {batch} ({count})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-55 dark:bg-neutral-900/50 flex gap-3 shrink-0">
+              <button 
+                onClick={() => {
+                  setEmailFilter("with"); // mailer defaults to "with"
+                  setResearchFilter("all");
+                  setStatusFilter("all");
+                  setLeadStatusFilter("All");
+                  setBatchFilter("All");
+                  setDateFilter("");
+                  setIsMobileFiltersOpen(false);
+                }}
+                className="flex-1 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-750 transition-colors"
+              >
+                Clear All
+              </button>
+              <button 
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm flex flex-col">
         {isLoading ? (
