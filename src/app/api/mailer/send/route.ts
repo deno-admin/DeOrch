@@ -117,8 +117,30 @@ export async function POST(request: Request) {
         stage,
       });
 
+      let emailLogId: number | null = null;
       try {
-        await transporter.sendMail({
+        // 1. Create the email log first
+        const { data: emailLog, error: emailLogError } = await leadsAdmin
+          .from("email_logs")
+          .insert({
+            lead_id: lead.id,
+            recipient_email: lead.email,
+            sender_email: smtpConfig.from_email,
+            subject,
+            email_type: stage,
+            status: "queued",
+            queued_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+
+        if (emailLogError) {
+          throw new Error(`Failed to create email log: ${emailLogError.message}`);
+        }
+        emailLogId = emailLog.id;
+
+        // 2. Send through the currently active SMTP provider
+        const info = await transporter.sendMail({
           from: `${smtpConfig.from_name || ""} <${smtpConfig.from_email}>`.trim(),
           to: lead.email,
           subject,
@@ -130,6 +152,21 @@ export async function POST(request: Request) {
           },
         });
 
+        // 3. Get the SMTP provider's message ID
+        const messageId = info.messageId || null;
+
+        // 4. Update the log as successfully sent
+        await leadsAdmin
+          .from("email_logs")
+          .update({
+            message_id: messageId,
+            status: "sent",
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", emailLogId);
+
+        // 5. Keep existing lead status logic
         const updatePayload: Record<string, any> = {};
         if (stage === "initial") {
           updatePayload.email_sent_status = "success";
@@ -148,6 +185,18 @@ export async function POST(request: Request) {
       } catch (sendError) {
         console.error(`Failed to send to lead ${lead.id}:`, sendError);
         const message = sendError instanceof Error ? sendError.message : "Send failed";
+
+        // Mark the email log as failed if it was created
+        if (emailLogId !== null) {
+          await leadsAdmin
+            .from("email_logs")
+            .update({
+              status: "failed",
+              error_message: message,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", emailLogId);
+        }
 
         if (stage === "initial") {
           await leadsAdmin
