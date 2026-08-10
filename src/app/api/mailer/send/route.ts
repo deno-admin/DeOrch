@@ -140,6 +140,7 @@ export async function POST(request: Request) {
         emailLogId = emailLog.id;
 
         // 2. Send through the currently active SMTP provider
+        const configSet = process.env.SES_CONFIGURATION_SET || "denovation-email-tracking";
         const info = await transporter.sendMail({
           from: `${smtpConfig.from_name || ""} <${smtpConfig.from_email}>`.trim(),
           to: lead.email,
@@ -149,11 +150,24 @@ export async function POST(request: Request) {
           headers: {
             "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@denovation.in>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            "X-SES-CONFIGURATION-SET": configSet,
           },
         });
 
-        // 3. Get the SMTP provider's message ID
-        const messageId = info.messageId || null;
+        // 3. Get the SMTP provider's message ID (try to parse SES message ID from SMTP response)
+        let messageId = null;
+        if (info.response) {
+          // Response usually looks like: "250 2.0.0 OK 01000189eb81c19b-6e9fa25c-a55e-49b8-aa34-dbb320d8a770-000000"
+          const parts = info.response.split(" ");
+          const lastPart = parts[parts.length - 1];
+          if (lastPart && lastPart.includes("-") && !lastPart.includes("@")) {
+            messageId = lastPart;
+          }
+        }
+        if (!messageId && info.messageId) {
+          // Fallback: strip brackets from standard messageId
+          messageId = info.messageId.replace(/[<>]/g, "");
+        }
 
         // 4. Update the log as successfully sent
         await leadsAdmin

@@ -59,11 +59,15 @@ export async function POST(request: Request) {
     }
 
     try {
+      const configSet = process.env.SES_CONFIGURATION_SET || "denovation-email-tracking";
       await transporter.sendMail({
         from: `${config.from_name || ""} <${config.from_email}>`.trim(),
         to: sendTestTo,
         subject: "DeOrch SMTP Test",
         text: "This is a test email from your DeOrch Mailer settings. If you're reading this, your SMTP connection works.",
+        headers: {
+          "X-SES-CONFIGURATION-SET": configSet,
+        },
       });
       return NextResponse.json({ verified: true, sent: true });
     } catch (sendError) {
