@@ -151,6 +151,7 @@ export async function POST(request: Request) {
             "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@denovation.in>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
             "X-SES-CONFIGURATION-SET": configSet,
+            "X-SES-MESSAGE-TAGS": `email_log_id=${emailLogId}`,
           },
         });
         // 3. Get the SMTP provider's message ID (try to parse SES message ID from SMTP response)
