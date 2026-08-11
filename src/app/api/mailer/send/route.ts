@@ -153,14 +153,14 @@ export async function POST(request: Request) {
             "X-SES-CONFIGURATION-SET": configSet,
           },
         });
-
         // 3. Get the SMTP provider's message ID (try to parse SES message ID from SMTP response)
         let messageId = null;
         if (info.response) {
-          // Response usually looks like: "250 2.0.0 OK 01000189eb81c19b-6e9fa25c-a55e-49b8-aa34-dbb320d8a770-000000"
+          // Standard SES SMTP: "250 2.0.0 OK 01000189eb81c19b-6e9fa25c-a55e-49b8-aa34-dbb320d8a770-000000"
+          // Mail Manager SMTP: "250 OK l7r291b73l6b21tucao5euheso3q9h51dai303g2"
           const parts = info.response.split(" ");
           const lastPart = parts[parts.length - 1];
-          if (lastPart && lastPart.includes("-") && !lastPart.includes("@")) {
+          if (lastPart && /^[a-zA-Z0-9\-]+$/.test(lastPart) && lastPart.length > 15) {
             messageId = lastPart;
           }
         }
