@@ -45,6 +45,7 @@ interface MailerLead {
   created_at: string | null;
   status: string | null;
   batch: string | null;
+  outreach_status?: string | null;
   latestLog?: any;
   logs?: any[];
 }
@@ -353,7 +354,8 @@ export default function MailerPage() {
           email_follow_up_1_sent_at, email_follow_up_2_sent_at, email_follow_up_3_sent_at, email_follow_up_4_sent_at, email_follow_up_5_sent_at,
           created_at,
           status,
-          batch
+          batch,
+          outreach_status
         `)
         .order("id", { ascending: false })
         .range(from, from + CHUNK_SIZE - 1);
@@ -805,8 +807,15 @@ export default function MailerPage() {
   };
 
   const statusBadge = (lead: MailerLead) => {
-    if (lead.latestLog) {
-      const status = lead.latestLog.status || "queued";
+    // 1. Get recent status from email_logs
+    let status = lead.latestLog?.status;
+
+    // 2. If there is no data, use the status from deorch_leads table - outreach_status
+    if (!status) {
+      status = lead.outreach_status;
+    }
+
+    if (status && status !== "idle" && status !== "not_sent") {
       return (
         <button
           onClick={() => openLogsModal(lead)}
