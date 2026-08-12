@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { supabaseLeads } from "@/lib/supabaseLeads";
+import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 
 interface MailerLead {
   id: number;
@@ -811,47 +812,26 @@ export default function MailerPage() {
   };
 
   const statusBadge = (lead: MailerLead) => {
-    const checkIsRecent = (l: MailerLead) => {
-      const cutoffDate = new Date("2026-08-12T00:00:00Z");
-      const dateFields = [
-        l.email_sent_at,
-        l.linkedin_sent_at,
-        l.email_follow_up_1_sent_at,
-        l.email_follow_up_2_sent_at,
-        l.email_follow_up_3_sent_at,
-        l.email_follow_up_4_sent_at,
-        l.email_follow_up_5_sent_at,
-        l.updated_at
-      ];
-      return dateFields.some(dateStr => {
-        if (!dateStr) return false;
-        const d = new Date(dateStr);
-        return !isNaN(d.getTime()) && d >= cutoffDate;
-      });
-    };
-
-    let status = null;
-    if (checkIsRecent(lead)) {
-      status = lead.latestLog?.status || lead.outreach_status;
-    } else {
-      status = lead.outreach_status;
-    }
-
-    if (status && status !== "idle" && status !== "not_sent") {
-      return (
-        <button
-          onClick={() => openLogsModal(lead)}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border cursor-pointer hover:opacity-85 transition-all ${getLogStatusStyle(status)}`}
-        >
-          {getLogStatusIcon(status)}
-          <span className="capitalize">{status}</span>
-        </button>
-      );
-    }
+    const status = getEffectiveOutreachStatus(lead);
 
     const isSent = !!lead[currentStageConfig.sentAtKey];
     const sentAt = lead[currentStageConfig.sentAtKey] as string | null;
     const hasDraft = !!lead[currentStageConfig.draftKey];
+
+    if (status && status !== "idle" && status !== "not_sent") {
+      return (
+        <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
+          <button
+            onClick={() => openLogsModal(lead)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border cursor-pointer hover:opacity-85 transition-all w-fit ${getLogStatusStyle(status)}`}
+          >
+            {getLogStatusIcon(status)}
+            <span className="capitalize">{status}</span>
+          </button>
+          {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
+        </div>
+      );
+    }
 
     if (activeStage === "initial") {
       if (lead.email_sent_status === "success") {

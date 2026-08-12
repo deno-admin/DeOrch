@@ -30,6 +30,7 @@ import {
   Send
 } from "lucide-react";
 import { supabaseLeads } from "@/lib/supabaseLeads";
+import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 
 const COLUMNS = ["New", "Qualified", "Contacted", "Follow Up", "Replied", "Meeting Scheduled", "Not Interested", "Unsubscribed"];
 
@@ -327,31 +328,7 @@ export default function LeadsPage() {
       }
     };
 
-    const checkIsRecent = (l: any) => {
-      const cutoffDate = new Date("2026-08-12T00:00:00Z");
-      const dateFields = [
-        l.email_sent_at,
-        l.linkedin_sent_at,
-        l.email_follow_up_1_sent_at,
-        l.email_follow_up_2_sent_at,
-        l.email_follow_up_3_sent_at,
-        l.email_follow_up_4_sent_at,
-        l.email_follow_up_5_sent_at,
-        l.updated_at
-      ];
-      return dateFields.some(dateStr => {
-        if (!dateStr) return false;
-        const d = new Date(dateStr);
-        return !isNaN(d.getTime()) && d >= cutoffDate;
-      });
-    };
-
-    let status = null;
-    if (checkIsRecent(lead)) {
-      status = lead.latestLog?.status || lead.outreach_status;
-    } else {
-      status = lead.outreach_status;
-    }
+    const status = getEffectiveOutreachStatus(lead);
 
     if (status && status !== "idle" && status !== "not_sent") {
       const style = getOutreachStatusStyle(status);
