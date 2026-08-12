@@ -206,18 +206,45 @@ export default function LeadsPage() {
   const withoutResearchCount = leads.length - withResearchCount;
 
   const sentCount = leads.filter(l => {
-    if (activeStage === "initial") return l.email_sent_status === "success";
-    return !!l[currentStageConfig.sentAtKey];
+    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    return (
+      status === "sent" || 
+      status === "delivered" || 
+      status === "opened" || 
+      status === "clicked" || 
+      status === "bounced" || 
+      status === "complained" || 
+      status === "rejected" ||
+      (activeStage === "initial" 
+        ? l.email_sent_status === "success" 
+        : !!l[currentStageConfig.sentAtKey])
+    );
   }).length;
 
-  const failedCount = leads.filter(l => l.email_sent_status === "failed").length;
+  const failedCount = leads.filter(l => {
+    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    return l.email_sent_status === "failed" || status === "bounced" || status === "failed" || status === "rejected";
+  }).length;
 
   const notSentCount = leads.filter(l => {
     const hasDraft = !!l[currentStageConfig.draftKey] && l[currentStageConfig.draftKey] !== 'N/A';
-    if (activeStage === "initial") return l.email_sent_status !== "success" && l.email_sent_status !== "failed" && hasDraft;
+    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    const isSent = (
+      status === "sent" || 
+      status === "delivered" || 
+      status === "opened" || 
+      status === "clicked" || 
+      status === "bounced" || 
+      status === "complained" || 
+      status === "rejected" ||
+      (activeStage === "initial" 
+        ? l.email_sent_status === "success" 
+        : !!l[currentStageConfig.sentAtKey])
+    );
+    if (activeStage === "initial") return !isSent && l.email_sent_status !== "failed" && hasDraft;
     const leadStatus = (l.status || "").toLowerCase().trim();
     const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested";
-    return !l[currentStageConfig.sentAtKey] && hasDraft && !isExcludedStatus;
+    return !isSent && hasDraft && !isExcludedStatus;
   }).length;
 
   const noDraftCount = leads.filter(l => !l[currentStageConfig.draftKey] || l[currentStageConfig.draftKey] === 'N/A').length;
@@ -238,21 +265,32 @@ export default function LeadsPage() {
 
   const matchesStatusFilter = (lead: any) => {
     const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== "N/A";
-    const isSent = !!lead[currentStageConfig.sentAtKey];
+    const status = getEffectiveOutreachStatus(lead)?.toLowerCase();
+    const isSent = (
+      status === "sent" || 
+      status === "delivered" || 
+      status === "opened" || 
+      status === "clicked" || 
+      status === "bounced" || 
+      status === "complained" || 
+      status === "rejected" ||
+      (activeStage === "initial" 
+        ? lead.email_sent_status === "success" 
+        : !!lead[currentStageConfig.sentAtKey])
+    );
+    const leadStatus = (lead.status || "").toLowerCase().trim();
+    const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
 
     if (activeStage === "initial") {
-      if (statusFilter === "sent") return lead.email_sent_status === "success";
-      if (statusFilter === "failed") return lead.email_sent_status === "failed";
-      if (statusFilter === "not_sent") return lead.email_sent_status !== "success" && lead.email_sent_status !== "failed" && hasDraft;
+      if (statusFilter === "sent") return isSent;
+      if (statusFilter === "failed") return lead.email_sent_status === "failed" || status === "bounced" || status === "failed" || status === "rejected";
+      if (statusFilter === "not_sent") return !isSent && lead.email_sent_status !== "failed" && hasDraft;
       if (statusFilter === "no_draft") return !hasDraft;
     } else {
-      const leadStatus = (lead.status || "").toLowerCase().trim();
-      const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested";
-
       if (statusFilter === "sent") return isSent;
       if (statusFilter === "not_sent") return !isSent && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
-      if (statusFilter === "failed") return false;
+      if (statusFilter === "failed") return status === "bounced" || status === "failed" || status === "rejected";
     }
     return true;
   };

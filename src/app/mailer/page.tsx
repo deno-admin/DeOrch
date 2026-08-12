@@ -444,21 +444,48 @@ export default function MailerPage() {
   const withoutResearchCount = leads.length - withResearchCount;
 
   const sentCount = leads.filter(l => {
-    if (activeStage === "initial") return l.email_sent_status === "success";
-    return !!l[currentStageConfig.sentAtKey];
+    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    return (
+      status === "sent" || 
+      status === "delivered" || 
+      status === "opened" || 
+      status === "clicked" || 
+      status === "bounced" || 
+      status === "complained" || 
+      status === "rejected" ||
+      (activeStage === "initial" 
+        ? l.email_sent_status === "success" 
+        : !!l[currentStageConfig.sentAtKey])
+    );
   }).length;
 
-  const failedCount = leads.filter(l => l.email_sent_status === "failed").length;
+  const failedCount = leads.filter(l => {
+    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    return l.email_sent_status === "failed" || status === "bounced" || status === "failed" || status === "rejected";
+  }).length;
 
   const notSentCount = leads.filter(l => {
-    const hasDraft = !!l[currentStageConfig.draftKey];
+    const hasDraft = !!l[currentStageConfig.draftKey] && l[currentStageConfig.draftKey] !== 'N/A';
     const leadStatus = (l.status || "").toLowerCase().trim();
     const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
-    if (activeStage === "initial") return l.email_sent_status !== "success" && l.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
-    return !l[currentStageConfig.sentAtKey] && hasDraft && !isExcludedStatus;
+    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    const isSent = (
+      status === "sent" || 
+      status === "delivered" || 
+      status === "opened" || 
+      status === "clicked" || 
+      status === "bounced" || 
+      status === "complained" || 
+      status === "rejected" ||
+      (activeStage === "initial" 
+        ? l.email_sent_status === "success" 
+        : !!l[currentStageConfig.sentAtKey])
+    );
+    if (activeStage === "initial") return !isSent && l.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
+    return !isSent && hasDraft && !isExcludedStatus;
   }).length;
 
-  const noDraftCount = leads.filter(l => !l[currentStageConfig.draftKey]).length;
+  const noDraftCount = leads.filter(l => !l[currentStageConfig.draftKey] || l[currentStageConfig.draftKey] === 'N/A').length;
 
   const matchesEmailFilter = (lead: MailerLead) => {
     if (emailFilter === "with") return !!lead.email;
@@ -474,21 +501,33 @@ export default function MailerPage() {
   };
 
   const matchesStatusFilter = (lead: MailerLead) => {
-    const hasDraft = !!lead[currentStageConfig.draftKey];
-    const isSent = !!lead[currentStageConfig.sentAtKey];
+    const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
+    const status = getEffectiveOutreachStatus(lead)?.toLowerCase();
+    const isSent = (
+      status === "sent" || 
+      status === "delivered" || 
+      status === "opened" || 
+      status === "clicked" || 
+      status === "bounced" || 
+      status === "complained" || 
+      status === "rejected" ||
+      (activeStage === "initial" 
+        ? lead.email_sent_status === "success" 
+        : !!lead[currentStageConfig.sentAtKey])
+    );
     const leadStatus = (lead.status || "").toLowerCase().trim();
     const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
 
     if (activeStage === "initial") {
-      if (statusFilter === "sent") return lead.email_sent_status === "success";
-      if (statusFilter === "failed") return lead.email_sent_status === "failed";
-      if (statusFilter === "not_sent") return lead.email_sent_status !== "success" && lead.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
+      if (statusFilter === "sent") return isSent;
+      if (statusFilter === "failed") return lead.email_sent_status === "failed" || status === "bounced" || status === "failed" || status === "rejected";
+      if (statusFilter === "not_sent") return !isSent && lead.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
     } else {
       if (statusFilter === "sent") return isSent;
       if (statusFilter === "not_sent") return !isSent && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
-      if (statusFilter === "failed") return false;
+      if (statusFilter === "failed") return status === "bounced" || status === "failed" || status === "rejected";
     }
     return true;
   };
@@ -1336,10 +1375,20 @@ export default function MailerPage() {
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {paginatedLeads.map((lead) => {
                   const hasEmail = !!lead.email;
-                  const hasDraft = !!lead[currentStageConfig.draftKey];
-                  const isSent = activeStage === "initial" 
-                    ? lead.email_sent_status === "success" 
-                    : !!lead[currentStageConfig.sentAtKey];
+                  const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
+                  const status = getEffectiveOutreachStatus(lead)?.toLowerCase();
+                  const isSent = (
+                    status === "sent" || 
+                    status === "delivered" || 
+                    status === "opened" || 
+                    status === "clicked" || 
+                    status === "bounced" || 
+                    status === "complained" || 
+                    status === "rejected" ||
+                    (activeStage === "initial" 
+                      ? lead.email_sent_status === "success" 
+                      : !!lead[currentStageConfig.sentAtKey])
+                  );
 
                   const leadStatus = (lead.status || "").toLowerCase().trim();
                   const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
