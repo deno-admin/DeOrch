@@ -42,6 +42,8 @@ interface MailerLead {
   email_follow_up_3_sent_at: string | null;
   email_follow_up_4_sent_at: string | null;
   email_follow_up_5_sent_at: string | null;
+  linkedin_sent_at?: string | null;
+  updated_at?: string | null;
   created_at: string | null;
   status: string | null;
   batch: string | null;
@@ -352,6 +354,8 @@ export default function MailerPage() {
           id, name, company, email, subject, email_draft, research_points, email_sent_status, email_sent_at,
           email_follow_up_1, email_follow_up_2, email_follow_up_3, email_follow_up_4, email_follow_up_5,
           email_follow_up_1_sent_at, email_follow_up_2_sent_at, email_follow_up_3_sent_at, email_follow_up_4_sent_at, email_follow_up_5_sent_at,
+          linkedin_sent_at,
+          updated_at,
           created_at,
           status,
           batch,
@@ -807,11 +811,29 @@ export default function MailerPage() {
   };
 
   const statusBadge = (lead: MailerLead) => {
-    // 1. Get recent status from email_logs
-    let status = lead.latestLog?.status;
+    const checkIsRecent = (l: MailerLead) => {
+      const cutoffDate = new Date("2026-08-12T00:00:00Z");
+      const dateFields = [
+        l.email_sent_at,
+        l.linkedin_sent_at,
+        l.email_follow_up_1_sent_at,
+        l.email_follow_up_2_sent_at,
+        l.email_follow_up_3_sent_at,
+        l.email_follow_up_4_sent_at,
+        l.email_follow_up_5_sent_at,
+        l.updated_at
+      ];
+      return dateFields.some(dateStr => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        return !isNaN(d.getTime()) && d >= cutoffDate;
+      });
+    };
 
-    // 2. If there is no data, use the status from deorch_leads table - outreach_status
-    if (!status) {
+    let status = null;
+    if (checkIsRecent(lead)) {
+      status = lead.latestLog?.status || lead.outreach_status;
+    } else {
       status = lead.outreach_status;
     }
 

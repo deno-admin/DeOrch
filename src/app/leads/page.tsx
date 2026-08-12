@@ -95,6 +95,30 @@ export default function LeadsPage() {
       from += CHUNK_SIZE;
     }
 
+    if (allData.length > 0) {
+      const leadIds = allData.map(l => l.id);
+      const { data: logsData, error: logsError } = await supabaseLeads
+        .from("email_logs")
+        .select("*")
+        .in("lead_id", leadIds)
+        .order("created_at", { ascending: false });
+
+      if (!logsError && logsData) {
+        const logsMap: Record<number, any[]> = {};
+        logsData.forEach((log: any) => {
+          if (!logsMap[log.lead_id]) {
+            logsMap[log.lead_id] = [];
+          }
+          logsMap[log.lead_id].push(log);
+        });
+
+        allData.forEach((lead: any) => {
+          const leadLogs = logsMap[lead.id] || [];
+          lead.latestLog = leadLogs[0] || null;
+        });
+      }
+    }
+
     setLeads(allData.map((row: any) => ({
       ...row,
       websiteScore: row.website_score,
@@ -303,15 +327,40 @@ export default function LeadsPage() {
       }
     };
 
-    const outreachStatus = lead.outreach_status;
-    if (outreachStatus && outreachStatus !== "idle" && outreachStatus !== "not_sent") {
-      const style = getOutreachStatusStyle(outreachStatus);
-      const icon = getOutreachStatusIcon(outreachStatus);
+    const checkIsRecent = (l: any) => {
+      const cutoffDate = new Date("2026-08-12T00:00:00Z");
+      const dateFields = [
+        l.email_sent_at,
+        l.linkedin_sent_at,
+        l.email_follow_up_1_sent_at,
+        l.email_follow_up_2_sent_at,
+        l.email_follow_up_3_sent_at,
+        l.email_follow_up_4_sent_at,
+        l.email_follow_up_5_sent_at,
+        l.updated_at
+      ];
+      return dateFields.some(dateStr => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        return !isNaN(d.getTime()) && d >= cutoffDate;
+      });
+    };
+
+    let status = null;
+    if (checkIsRecent(lead)) {
+      status = lead.latestLog?.status || lead.outreach_status;
+    } else {
+      status = lead.outreach_status;
+    }
+
+    if (status && status !== "idle" && status !== "not_sent") {
+      const style = getOutreachStatusStyle(status);
+      const icon = getOutreachStatusIcon(status);
       return (
         <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
           <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border w-fit ${style}`}>
             {icon}
-            <span className="capitalize">{outreachStatus}</span>
+            <span className="capitalize">{status}</span>
           </span>
           {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
         </div>
