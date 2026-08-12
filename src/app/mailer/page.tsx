@@ -444,15 +444,17 @@ export default function MailerPage() {
   const withoutResearchCount = leads.length - withResearchCount;
 
   const sentCount = leads.filter(l => {
-    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
     return (
-      status === "sent" || 
-      status === "delivered" || 
-      status === "opened" || 
-      status === "clicked" || 
-      status === "bounced" || 
-      status === "complained" || 
-      status === "rejected" ||
+      (stageLog && (
+        stageLog.status === "sent" || 
+        stageLog.status === "delivered" || 
+        stageLog.status === "opened" || 
+        stageLog.status === "clicked" || 
+        stageLog.status === "bounced" || 
+        stageLog.status === "complained" || 
+        stageLog.status === "rejected"
+      )) ||
       (activeStage === "initial" 
         ? l.email_sent_status === "success" 
         : !!l[currentStageConfig.sentAtKey])
@@ -460,23 +462,25 @@ export default function MailerPage() {
   }).length;
 
   const failedCount = leads.filter(l => {
-    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
-    return l.email_sent_status === "failed" || status === "bounced" || status === "failed" || status === "rejected";
+    const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    return l.email_sent_status === "failed" || (stageLog && (stageLog.status === "bounced" || stageLog.status === "failed" || stageLog.status === "rejected"));
   }).length;
 
   const notSentCount = leads.filter(l => {
     const hasDraft = !!l[currentStageConfig.draftKey] && l[currentStageConfig.draftKey] !== 'N/A';
     const leadStatus = (l.status || "").toLowerCase().trim();
     const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
-    const status = getEffectiveOutreachStatus(l)?.toLowerCase();
+    const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
     const isSent = (
-      status === "sent" || 
-      status === "delivered" || 
-      status === "opened" || 
-      status === "clicked" || 
-      status === "bounced" || 
-      status === "complained" || 
-      status === "rejected" ||
+      (stageLog && (
+        stageLog.status === "sent" || 
+        stageLog.status === "delivered" || 
+        stageLog.status === "opened" || 
+        stageLog.status === "clicked" || 
+        stageLog.status === "bounced" || 
+        stageLog.status === "complained" || 
+        stageLog.status === "rejected"
+      )) ||
       (activeStage === "initial" 
         ? l.email_sent_status === "success" 
         : !!l[currentStageConfig.sentAtKey])
@@ -502,15 +506,17 @@ export default function MailerPage() {
 
   const matchesStatusFilter = (lead: MailerLead) => {
     const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
-    const status = getEffectiveOutreachStatus(lead)?.toLowerCase();
+    const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
     const isSent = (
-      status === "sent" || 
-      status === "delivered" || 
-      status === "opened" || 
-      status === "clicked" || 
-      status === "bounced" || 
-      status === "complained" || 
-      status === "rejected" ||
+      (stageLog && (
+        stageLog.status === "sent" || 
+        stageLog.status === "delivered" || 
+        stageLog.status === "opened" || 
+        stageLog.status === "clicked" || 
+        stageLog.status === "bounced" || 
+        stageLog.status === "complained" || 
+        stageLog.status === "rejected"
+      )) ||
       (activeStage === "initial" 
         ? lead.email_sent_status === "success" 
         : !!lead[currentStageConfig.sentAtKey])
@@ -520,14 +526,14 @@ export default function MailerPage() {
 
     if (activeStage === "initial") {
       if (statusFilter === "sent") return isSent;
-      if (statusFilter === "failed") return lead.email_sent_status === "failed" || status === "bounced" || status === "failed" || status === "rejected";
+      if (statusFilter === "failed") return lead.email_sent_status === "failed" || (stageLog && (stageLog.status === "bounced" || stageLog.status === "failed" || stageLog.status === "rejected"));
       if (statusFilter === "not_sent") return !isSent && lead.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
     } else {
       if (statusFilter === "sent") return isSent;
       if (statusFilter === "not_sent") return !isSent && hasDraft && !isExcludedStatus;
       if (statusFilter === "no_draft") return !hasDraft;
-      if (statusFilter === "failed") return status === "bounced" || status === "failed" || status === "rejected";
+      if (statusFilter === "failed") return stageLog && (stageLog.status === "bounced" || stageLog.status === "failed" || stageLog.status === "rejected");
     }
     return true;
   };
@@ -858,15 +864,28 @@ export default function MailerPage() {
     const status = getEffectiveOutreachStatus(lead);
 
     if (status && status !== "idle" && status !== "not_sent") {
+      const style = getLogStatusStyle(status);
+      const icon = getLogStatusIcon(status);
+      const badgeContent = (
+        <>
+          {icon}
+          <span className="capitalize">{status}</span>
+        </>
+      );
       return (
         <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
-          <button
-            onClick={() => openLogsModal(lead)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border cursor-pointer hover:opacity-85 transition-all w-fit ${getLogStatusStyle(status)}`}
-          >
-            {getLogStatusIcon(status)}
-            <span className="capitalize">{status}</span>
-          </button>
+          {lead.latestLog ? (
+            <button
+              onClick={() => openLogsModal(lead)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border cursor-pointer hover:opacity-85 transition-all w-fit ${style}`}
+            >
+              {badgeContent}
+            </button>
+          ) : (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border w-fit ${style}`}>
+              {badgeContent}
+            </span>
+          )}
           {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
         </div>
       );
@@ -1376,15 +1395,17 @@ export default function MailerPage() {
                 {paginatedLeads.map((lead) => {
                   const hasEmail = !!lead.email;
                   const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
-                  const status = getEffectiveOutreachStatus(lead)?.toLowerCase();
+                  const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
                   const isSent = (
-                    status === "sent" || 
-                    status === "delivered" || 
-                    status === "opened" || 
-                    status === "clicked" || 
-                    status === "bounced" || 
-                    status === "complained" || 
-                    status === "rejected" ||
+                    (stageLog && (
+                      stageLog.status === "sent" || 
+                      stageLog.status === "delivered" || 
+                      stageLog.status === "opened" || 
+                      stageLog.status === "clicked" || 
+                      stageLog.status === "bounced" || 
+                      stageLog.status === "complained" || 
+                      stageLog.status === "rejected"
+                    )) ||
                     (activeStage === "initial" 
                       ? lead.email_sent_status === "success" 
                       : !!lead[currentStageConfig.sentAtKey])

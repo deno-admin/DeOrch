@@ -182,7 +182,9 @@ export async function POST(request: Request) {
           .eq("id", emailLogId);
 
         // 5. Keep existing lead status logic
-        const updatePayload: Record<string, any> = {};
+        const updatePayload: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
         if (stage === "initial") {
           updatePayload.email_sent_status = "success";
           updatePayload.outreach_status = "sent";
