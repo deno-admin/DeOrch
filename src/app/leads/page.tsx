@@ -30,7 +30,6 @@ import {
   Send
 } from "lucide-react";
 import { supabaseLeads } from "@/lib/supabaseLeads";
-import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 
 const COLUMNS = ["New", "Qualified", "Contacted", "Follow Up", "Replied", "Meeting Scheduled", "Not Interested", "Unsubscribed"];
 
@@ -328,59 +327,69 @@ export default function LeadsPage() {
       }
     };
 
-    const status = getEffectiveOutreachStatus(lead);
+    const leadOutreachStatus = lead.outreach_status;
+    const logStatus = lead.latestLog?.status;
 
-    if (status && status !== "idle" && status !== "not_sent") {
-      const style = getOutreachStatusStyle(status);
-      const icon = getOutreachStatusIcon(status);
-      return (
-        <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
-          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border w-fit ${style}`}>
-            {icon}
-            <span className="capitalize">{status}</span>
-          </span>
-          {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
-        </div>
-      );
-    }
-
-    if (activeStage === "initial") {
-      if (lead.email_sent_status === "success") {
-        return (
-          <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
-            {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
+    return (
+      <div className="flex flex-col gap-1.5 animate-in fade-in duration-200 text-left">
+        {/* 1. deorch_leads outreach_status */}
+        {leadOutreachStatus && leadOutreachStatus !== "idle" && leadOutreachStatus !== "not_sent" && (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[9px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Outreach</span>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border w-fit ${getOutreachStatusStyle(leadOutreachStatus)}`}
+            >
+              {getOutreachStatusIcon(leadOutreachStatus)}
+              <span className="capitalize">{leadOutreachStatus}</span>
+            </span>
           </div>
-        );
-      }
-      if (lead.email_sent_status === "failed") {
-        return <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-in fade-in duration-200"><AlertCircle size={10} /> Failed</span>;
-      }
-    } else {
-      if (isSent) {
-        return (
-          <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
-            {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
+        )}
+
+        {/* 2. email_logs status */}
+        {logStatus && (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[9px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">SES Track</span>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border w-fit ${getOutreachStatusStyle(logStatus)}`}
+            >
+              {getOutreachStatusIcon(logStatus)}
+              <span className="capitalize">{logStatus}</span>
+            </span>
           </div>
-        );
-      }
-    }
+        )}
 
-    const leadStatus = (lead.status || "").toLowerCase().trim();
-    if (activeStage !== "initial" && (leadStatus === "unsubscribed" || leadStatus === "not interested")) {
-      return (
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 animate-in fade-in duration-200">
-          Skipped ({lead.status})
-        </span>
-      );
-    }
+        {/* Fallback if both are empty/idle */}
+        {(!leadOutreachStatus || leadOutreachStatus === "idle" || leadOutreachStatus === "not_sent") && !logStatus && (
+          <>
+            {activeStage === "initial" ? (
+              lead.email_sent_status === "success" ? (
+                <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+                </div>
+              ) : lead.email_sent_status === "failed" ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-in fade-in duration-200"><AlertCircle size={10} /> Failed</span>
+              ) : hasDraft ? (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 animate-in fade-in duration-200 w-fit">Ready</span>
+              ) : (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 animate-in fade-in duration-200 w-fit">No draft</span>
+              )
+            ) : (
+              isSent ? (
+                <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+                </div>
+              ) : hasDraft ? (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 animate-in fade-in duration-200 w-fit">Ready</span>
+              ) : (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 animate-in fade-in duration-200 w-fit">No draft</span>
+              )
+            )}
+          </>
+        )}
 
-    if (hasDraft) {
-      return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 animate-in fade-in duration-200">Ready</span>;
-    }
-
-    return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 animate-in fade-in duration-200">No draft</span>;
+        {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
+      </div>
+    );
   };
 
   const availableBatches = React.useMemo(() => {

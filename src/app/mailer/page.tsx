@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { supabaseLeads } from "@/lib/supabaseLeads";
-import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 
 interface MailerLead {
   id: number;
@@ -812,64 +811,74 @@ export default function MailerPage() {
   };
 
   const statusBadge = (lead: MailerLead) => {
-    const status = getEffectiveOutreachStatus(lead);
-
     const isSent = !!lead[currentStageConfig.sentAtKey];
     const sentAt = lead[currentStageConfig.sentAtKey] as string | null;
     const hasDraft = !!lead[currentStageConfig.draftKey];
 
-    if (status && status !== "idle" && status !== "not_sent") {
-      return (
-        <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
-          <button
-            onClick={() => openLogsModal(lead)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border cursor-pointer hover:opacity-85 transition-all w-fit ${getLogStatusStyle(status)}`}
-          >
-            {getLogStatusIcon(status)}
-            <span className="capitalize">{status}</span>
-          </button>
-          {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
-        </div>
-      );
-    }
+    const leadOutreachStatus = lead.outreach_status;
+    const logStatus = lead.latestLog?.status;
 
-    if (activeStage === "initial") {
-      if (lead.email_sent_status === "success") {
-        return (
+    return (
+      <div className="flex flex-col gap-1.5 animate-in fade-in duration-200">
+        {/* 1. deorch_leads outreach_status */}
+        {leadOutreachStatus && leadOutreachStatus !== "idle" && leadOutreachStatus !== "not_sent" && (
           <div className="flex flex-col gap-0.5">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
-            {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
+            <span className="text-[9px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Outreach</span>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border w-fit ${getLogStatusStyle(leadOutreachStatus)}`}
+            >
+              {getLogStatusIcon(leadOutreachStatus)}
+              <span className="capitalize">{leadOutreachStatus}</span>
+            </span>
           </div>
-        );
-      }
-      if (lead.email_sent_status === "failed") {
-        return <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"><AlertCircle size={10} /> Failed</span>;
-      }
-    } else {
-      if (isSent) {
-        return (
+        )}
+
+        {/* 2. email_logs status */}
+        {logStatus && (
           <div className="flex flex-col gap-0.5">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
-            {sentAt && <span className="text-[10px] text-neutral-400">{formatSentDate(sentAt)}</span>}
+            <span className="text-[9px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">SES Track</span>
+            <button
+              onClick={() => openLogsModal(lead)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border cursor-pointer hover:opacity-85 transition-all w-fit ${getLogStatusStyle(logStatus)}`}
+            >
+              {getLogStatusIcon(logStatus)}
+              <span className="capitalize">{logStatus}</span>
+            </button>
           </div>
-        );
-      }
-    }
+        )}
 
-    const leadStatus = (lead.status || "").toLowerCase().trim();
-    if (leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp") {
-      return (
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800">
-          Skipped ({lead.status})
-        </span>
-      );
-    }
+        {/* Fallback if both are empty/idle */}
+        {(!leadOutreachStatus || leadOutreachStatus === "idle" || leadOutreachStatus === "not_sent") && !logStatus && (
+          <>
+            {activeStage === "initial" ? (
+              lead.email_sent_status === "success" ? (
+                <div className="flex flex-col gap-0.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+                </div>
+              ) : lead.email_sent_status === "failed" ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"><AlertCircle size={10} /> Failed</span>
+              ) : hasDraft ? (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 w-fit">Ready to send</span>
+              ) : (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 w-fit">No draft</span>
+              )
+            ) : (
+              isSent ? (
+                <div className="flex flex-col gap-0.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+                </div>
+              ) : hasDraft ? (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 w-fit">Ready to send</span>
+              ) : (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 w-fit">No draft</span>
+              )
+            )}
+          </>
+        )}
 
-    if (hasDraft) {
-      return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400">Ready to send</span>;
-    }
-
-    return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800">No draft</span>;
+        {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
+      </div>
+    );
   };
 
   return (
