@@ -13,10 +13,49 @@ interface EmailLogsModalProps {
 export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: EmailLogsModalProps) {
   const [logPreviewHtml, setLogPreviewHtml] = useState<string | null>(null);
   const [isLogPreviewLoading, setIsLogPreviewLoading] = useState(false);
+  const [latestLog, setLatestLog] = useState<any | null>(lead?.latestLog || null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (lead && lead.latestLog) {
-      fetchLogPreview(lead, lead.latestLog);
+    const loadLogs = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/mailer/logs?leadId=${lead.id}`);
+        const data = await res.json();
+        if (data.logs && data.logs.length > 0) {
+          const currentLog = data.logs[0];
+          setLatestLog(currentLog);
+          fetchLogPreview(lead, currentLog);
+        } else {
+          // If no logs returned, construct fallback log
+          const hasSent = lead.email_sent_status && lead.email_sent_status !== "failed" && lead.email_sent_status !== "queued" && lead.email_sent_status !== "sending" && lead.email_sent_status !== "not_sent" && lead.email_sent_status !== "idle";
+          if (hasSent || lead.email_sent_at) {
+            const fallbackLog = {
+              id: -1,
+              lead_id: lead.id,
+              status: lead.email_sent_status || "sent",
+              email_type: "initial",
+              sent_at: lead.email_sent_at,
+              delivered_at: lead.email_sent_status === "delivered" ? lead.email_sent_at : null,
+              opened_at: lead.email_sent_status === "opened" ? lead.email_sent_at : null,
+              clicked_at: lead.email_sent_status === "clicked" ? lead.email_sent_at : null,
+              recipient_email: lead.email,
+              sender_email: "kumaran@denovation.in",
+              subject: lead.subject || "Quick thought",
+            };
+            setLatestLog(fallbackLog);
+            fetchLogPreview(lead, fallbackLog);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load logs:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (lead) {
+      loadLogs();
     }
   }, [lead]);
 
@@ -151,7 +190,33 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
     return events;
   };
 
-  if (!lead || !lead.latestLog) return null;
+  if (!lead) return null;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md p-8 border border-neutral-200 dark:border-neutral-800 flex flex-col items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
+          <p className="text-neutral-500 font-medium">Loading email log...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!latestLog) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-800 text-center relative" onClick={(e) => e.stopPropagation()}>
+          <button onClick={onClose} className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+            <X size={18} />
+          </button>
+          <AlertCircle className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+          <h3 className="text-base font-semibold mb-1 text-neutral-800 dark:text-neutral-200">No logs found</h3>
+          <p className="text-sm text-neutral-500 mb-4">No tracking log exists for this lead.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
@@ -162,7 +227,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
           <h2 className="text-base font-bold text-neutral-800 dark:text-neutral-200 truncate pr-4">
-            {lead.latestLog.subject || `Quick thought on ${lead.company}'s website`}
+            {latestLog.subject || `Quick thought on ${lead.company}'s website`}
           </h2>
           <button 
             onClick={onClose}
@@ -181,25 +246,25 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
               <div className="grid grid-cols-[85px_1fr] gap-x-2 gap-y-1.5 text-xs">
                 <span className="text-neutral-400">Sent on</span>
                 <span className="text-neutral-700 dark:text-neutral-300 font-medium">
-                  {lead.latestLog.sent_at 
-                    ? new Date(lead.latestLog.sent_at).toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' at') 
+                  {latestLog.sent_at 
+                    ? new Date(latestLog.sent_at).toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' at') 
                     : "N/A"
                   }
                 </span>
                 
                 <span className="text-neutral-400">Sender (From)</span>
                 <span className="text-neutral-700 dark:text-neutral-300 truncate font-mono select-all">
-                  {lead.latestLog.sender_email || "N/A"}
+                  {latestLog.sender_email || "N/A"}
                 </span>
                 
                 <span className="text-neutral-400">Recipient (To)</span>
                 <span className="text-neutral-700 dark:text-neutral-300 truncate font-mono select-all">
-                  {lead.latestLog.recipient_email}
+                  {latestLog.recipient_email}
                 </span>
                 
                 <span className="text-neutral-400">Message ID</span>
-                <span className="text-neutral-600 dark:text-neutral-400 truncate font-mono text-[10px] select-all bg-neutral-100 dark:bg-neutral-950 px-1 py-0.5 rounded border border-neutral-250 dark:border-neutral-800">
-                  {lead.latestLog.message_id || "Pending SMTP dispatch..."}
+                <span className="text-neutral-600 dark:text-neutral-400 truncate font-mono text-[10px] select-all bg-neutral-100 dark:bg-neutral-950 px-1 py-0.5 rounded border border-neutral-255 dark:border-neutral-800">
+                  {latestLog.message_id || "Pending SMTP dispatch..."}
                 </span>
               </div>
             </div>
@@ -208,7 +273,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
               <div className="p-3 border-b border-neutral-100 dark:border-neutral-800 shrink-0 flex items-center justify-between bg-neutral-50/55 dark:bg-neutral-900/55">
                 <span className="text-xs font-semibold text-neutral-500">Email Preview</span>
                 <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400">
-                  {lead.latestLog.email_type || "initial"}
+                  {latestLog.email_type || "initial"}
                 </span>
               </div>
               <div className="flex-1 bg-neutral-50 dark:bg-neutral-950 overflow-hidden relative">
@@ -234,11 +299,11 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
             </div>
 
             <div className="flex-1 overflow-y-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-sm space-y-6">
-              {getLogEvents(lead.latestLog).length === 0 ? (
+              {getLogEvents(latestLog).length === 0 ? (
                 <p className="text-xs text-neutral-400 italic text-center p-4">No event timestamps recorded for this log.</p>
               ) : (
                 <div className="relative border-l border-neutral-200 dark:border-neutral-800 pl-6 ml-3 space-y-6">
-                  {getLogEvents(lead.latestLog).map((event, index) => (
+                  {getLogEvents(latestLog).map((event, index) => (
                     <div key={index} className="relative">
                       {/* Dot / Icon container */}
                       <span className={`absolute -left-[35px] top-0.5 flex items-center justify-center w-6 h-6 rounded-full border-2 bg-white dark:bg-neutral-900 ${event.color} shadow-sm`}>
@@ -264,7 +329,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
         {/* Modal Footer */}
         <div className="flex items-center justify-between p-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 shrink-0">
           <button
-            onClick={() => onDeleteLog(lead.latestLog.id)}
+            onClick={() => onDeleteLog(latestLog.id)}
             className="flex items-center gap-1.5 px-3 py-2 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer shadow-sm"
           >
             <Trash2 size={14} />
@@ -272,7 +337,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
           </button>
           
           <button
-            onClick={() => onResendEmail(lead.id, lead.latestLog.email_type || "initial")}
+            onClick={() => onResendEmail(lead.id, latestLog.email_type || "initial")}
             className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm shadow-indigo-600/20"
           >
             <Send size={14} />
