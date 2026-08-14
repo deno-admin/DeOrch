@@ -1,19 +1,31 @@
 "use client";
 
 import React from "react";
-import { Loader2, Send, CheckCircle2, Eye, AlertCircle } from "lucide-react";
+import { Loader2, Send, CheckCircle2, Eye, AlertCircle, Search, Sparkles, Check } from "lucide-react";
 import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 
 interface OutreachStatusBadgeProps {
   lead: any;
   onClick?: () => void;
+  status?: string;
 }
 
-export function OutreachStatusBadge({ lead, onClick }: OutreachStatusBadgeProps) {
-  const status = getEffectiveOutreachStatus(lead);
+export function OutreachStatusBadge({ lead, onClick, status: statusProp }: OutreachStatusBadgeProps) {
+  const status = (statusProp !== undefined ? statusProp : getEffectiveOutreachStatus(lead)) || "idle";
 
   const getOutreachStatusStyle = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'idle':
+      case 'not_sent':
+        return 'bg-neutral-50 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700/50';
+      case 'researched':
+        return 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border-sky-200 dark:border-sky-500/20';
+      case 'generated':
+        return 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20';
+      case 'reviewed':
+        return 'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400 border-teal-200 dark:border-teal-500/20';
+      case 'sending':
+        return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-500/20';
       case 'queued':
         return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-500/20';
       case 'sent':
@@ -38,6 +50,17 @@ export function OutreachStatusBadge({ lead, onClick }: OutreachStatusBadgeProps)
 
   const getOutreachStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'idle':
+      case 'not_sent':
+        return null;
+      case 'researched':
+        return <Search size={10} className="text-sky-500 shrink-0" />;
+      case 'generated':
+        return <Sparkles size={10} className="text-indigo-500 shrink-0" />;
+      case 'reviewed':
+        return <Check size={10} className="text-teal-500 shrink-0" />;
+      case 'sending':
+        return <Loader2 size={10} className="animate-spin text-amber-500 shrink-0" />;
       case 'queued':
         return <Loader2 size={10} className="animate-spin text-amber-500 shrink-0" />;
       case 'sent':
@@ -60,7 +83,11 @@ export function OutreachStatusBadge({ lead, onClick }: OutreachStatusBadgeProps)
   };
 
   if (!status || status === "idle" || status === "not_sent") {
-    return null;
+    // If explicit status is requested (e.g. outreach_status column), we still want to show a neutral badge.
+    // If it's the old usage (no status override), we return null to keep old behavior.
+    if (statusProp === undefined) {
+      return null;
+    }
   }
 
   const style = getOutreachStatusStyle(status);
@@ -69,7 +96,7 @@ export function OutreachStatusBadge({ lead, onClick }: OutreachStatusBadgeProps)
   const badgeContent = (
     <>
       {icon}
-      <span className="capitalize select-none">{status}</span>
+      <span className="capitalize select-none">{(status || "").replace("_", " ")}</span>
     </>
   );
 
