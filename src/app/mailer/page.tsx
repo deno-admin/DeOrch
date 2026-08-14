@@ -663,6 +663,17 @@ export default function MailerPage() {
     return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   };
 
+  const formatEventDate = (iso: string | null) => {
+    if (!iso) return null;
+    return new Date(iso).toLocaleString(undefined, { 
+      month: "short", 
+      day: "numeric", 
+      hour: "2-digit", 
+      minute: "2-digit",
+      hour12: true 
+    });
+  };
+
   const getLeadStatusStyle = (status: string | null) => {
     const s = status ? (status.toLowerCase() === 'new' ? 'New' : status) : 'New';
     switch (s) {
@@ -710,11 +721,25 @@ export default function MailerPage() {
       logStatus = lead.email_sent_status;
     }
 
+    // Determine the precise timestamp for the current log status
+    let eventTime: string | null = sentAt;
+    if (logStatus && stageLog) {
+      const s = logStatus.toLowerCase();
+      if (s === "delivered" && stageLog.delivered_at) eventTime = stageLog.delivered_at;
+      else if (s === "opened" && stageLog.opened_at) eventTime = stageLog.opened_at;
+      else if (s === "clicked" && stageLog.clicked_at) eventTime = stageLog.clicked_at;
+      else if (s === "bounced" && stageLog.bounced_at) eventTime = stageLog.bounced_at;
+      else if (s === "complained" && stageLog.complained_at) eventTime = stageLog.complained_at;
+      else if (s === "sent" && stageLog.sent_at) eventTime = stageLog.sent_at;
+      else if (s === "queued" && stageLog.queued_at) eventTime = stageLog.queued_at;
+      else if (s === "failed" && stageLog.updated_at) eventTime = stageLog.updated_at;
+    }
+
     if (logStatus && logStatus !== "success" && logStatus !== "pending") {
       return (
         <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
           <OutreachStatusBadge lead={lead} status={logStatus} onClick={() => openLogsModal(lead)} />
-          {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
+          {eventTime && <span className="text-[10px] text-neutral-400 mt-0.5">{formatEventDate(eventTime)}</span>}
         </div>
       );
     }
@@ -734,14 +759,14 @@ export default function MailerPage() {
           )
         ) : (
           isSent ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-750 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
           ) : hasDraft ? (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 w-fit">Ready to send</span>
           ) : (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 w-fit">No draft</span>
           )
         )}
-        {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
+        {eventTime && <span className="text-[10px] text-neutral-400 mt-0.5">{formatEventDate(eventTime)}</span>}
       </div>
     );
   };
