@@ -312,6 +312,12 @@ export default function MailerPage() {
 
   const sentCount = leads.filter(l => {
     const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    const hasInitialSentStatus = l.email_sent_status && 
+      l.email_sent_status !== "failed" && 
+      l.email_sent_status !== "queued" && 
+      l.email_sent_status !== "sending" && 
+      l.email_sent_status !== "not_sent" && 
+      l.email_sent_status !== "idle";
     return (
       (stageLog && (
         stageLog.status === "sent" || 
@@ -323,7 +329,7 @@ export default function MailerPage() {
         stageLog.status === "rejected"
       )) ||
       (activeStage === "initial" 
-        ? l.email_sent_status === "success" 
+        ? (!!l.email_sent_at || !!hasInitialSentStatus)
         : !!l[currentStageConfig.sentAtKey])
     );
   }).length;
@@ -338,6 +344,12 @@ export default function MailerPage() {
     const leadStatus = (l.status || "").toLowerCase().trim();
     const isExcludedStatus = leadStatus === "unsubscribed" || leadStatus === "not interested" || leadStatus === "wrong icp";
     const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    const hasInitialSentStatus = l.email_sent_status && 
+      l.email_sent_status !== "failed" && 
+      l.email_sent_status !== "queued" && 
+      l.email_sent_status !== "sending" && 
+      l.email_sent_status !== "not_sent" && 
+      l.email_sent_status !== "idle";
     const isSent = (
       (stageLog && (
         stageLog.status === "sent" || 
@@ -349,7 +361,7 @@ export default function MailerPage() {
         stageLog.status === "rejected"
       )) ||
       (activeStage === "initial" 
-        ? l.email_sent_status === "success" 
+        ? (!!l.email_sent_at || !!hasInitialSentStatus) 
         : !!l[currentStageConfig.sentAtKey])
     );
     if (activeStage === "initial") return !isSent && l.email_sent_status !== "failed" && hasDraft && !isExcludedStatus;
@@ -374,6 +386,12 @@ export default function MailerPage() {
   const matchesStatusFilter = (lead: MailerLead) => {
     const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
     const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    const hasInitialSentStatus = lead.email_sent_status && 
+      lead.email_sent_status !== "failed" && 
+      lead.email_sent_status !== "queued" && 
+      lead.email_sent_status !== "sending" && 
+      lead.email_sent_status !== "not_sent" && 
+      lead.email_sent_status !== "idle";
     const isSent = (
       (stageLog && (
         stageLog.status === "sent" || 
@@ -385,7 +403,7 @@ export default function MailerPage() {
         stageLog.status === "rejected"
       )) ||
       (activeStage === "initial" 
-        ? lead.email_sent_status === "success" 
+        ? (!!lead.email_sent_at || !!hasInitialSentStatus) 
         : !!lead[currentStageConfig.sentAtKey])
     );
     const leadStatus = (lead.status || "").toLowerCase().trim();
@@ -685,9 +703,14 @@ export default function MailerPage() {
     const sentAt = lead[currentStageConfig.sentAtKey] as string | null;
     const hasDraft = !!lead[currentStageConfig.draftKey];
     const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
-    const logStatus = stageLog?.status;
+    let logStatus = stageLog?.status;
 
-    if (logStatus) {
+    // Use lead.email_sent_status as a fallback for initial stage (e.g. if RLS blocks email_logs)
+    if (!logStatus && activeStage === "initial" && lead.email_sent_status) {
+      logStatus = lead.email_sent_status;
+    }
+
+    if (logStatus && logStatus !== "success" && logStatus !== "pending") {
       return (
         <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
           <OutreachStatusBadge lead={lead} status={logStatus} onClick={() => openLogsModal(lead)} />
@@ -700,8 +723,8 @@ export default function MailerPage() {
     return (
       <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
         {activeStage === "initial" ? (
-          lead.email_sent_status === "success" ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+          (lead.email_sent_status === "success" || logStatus === "success") ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-750 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
           ) : lead.email_sent_status === "failed" ? (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 w-fit"><AlertCircle size={10} /> Failed</span>
           ) : hasDraft ? (
