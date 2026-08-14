@@ -1236,18 +1236,17 @@ export default function MailerPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1200px]">
+            <table className="w-full text-left border-collapse min-w-[1100px]">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs uppercase tracking-wider text-neutral-500 sticky top-0 z-10 backdrop-blur-md">
                   <th className="p-4 w-12 text-center">
                     <input type="checkbox" checked={selectableLeads.length > 0 && selectableLeads.every(l => selectedIds.includes(l.id))} onChange={toggleSelectAll} className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500" />
                   </th>
-                  <th className="p-4 font-semibold w-[16%]">Lead</th>
-                  <th className="p-4 font-semibold w-[20%]">Research Points</th>
-                  <th className="p-4 font-semibold w-[22%]">Draft Preview</th>
-                  <th className="p-4 font-semibold w-[10%]">Lead Status</th>
-                  <th className="p-4 font-semibold w-[11%]">Outreach Status</th>
-                  <th className="p-4 font-semibold w-[11%]">Email Log</th>
+                  <th className="p-4 font-semibold w-[18%]">Lead</th>
+                  <th className="p-4 font-semibold w-[22%]">Research Points</th>
+                  <th className="p-4 font-semibold w-[25%]">Draft Preview</th>
+                  <th className="p-4 font-semibold w-[12%]">Lead Status</th>
+                  <th className="p-4 font-semibold w-[13%]">Email Log</th>
                   <th className="p-4 font-semibold w-[10%] text-right">Actions</th>
                 </tr>
               </thead>
@@ -1340,9 +1339,6 @@ export default function MailerPage() {
                           <span>{lead.status ? (lead.status.toLowerCase() === 'new' ? 'New' : lead.status) : 'New'}</span>
                           <ChevronDown size={10} className="shrink-0 opacity-60" />
                         </button>
-                      </td>
-                      <td className="p-4">
-                        <OutreachStatusBadge lead={lead} status={lead.outreach_status || "idle"} />
                       </td>
                       <td className="p-4">{emailLogBadge(lead)}</td>
                       <td className="p-4 text-right">
