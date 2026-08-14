@@ -509,8 +509,14 @@ export default function MailerPage() {
     if (!lead) return false;
     const hasEmail = !!lead.email;
     const hasDraft = !!lead[currentStageConfig.draftKey];
+    const hasInitialSentStatus = lead.email_sent_status && 
+      lead.email_sent_status !== "failed" && 
+      lead.email_sent_status !== "queued" && 
+      lead.email_sent_status !== "sending" && 
+      lead.email_sent_status !== "not_sent" && 
+      lead.email_sent_status !== "idle";
     const isSent = activeStage === "initial" 
-      ? lead.email_sent_status === "success" 
+      ? (!!lead.email_sent_at || !!hasInitialSentStatus) 
       : !!lead[currentStageConfig.sentAtKey];
 
     const leadStatus = (lead.status || "").toLowerCase().trim();
@@ -1250,6 +1256,12 @@ export default function MailerPage() {
                   const hasEmail = !!lead.email;
                   const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
                   const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+                  const hasInitialSentStatus = lead.email_sent_status && 
+                    lead.email_sent_status !== "failed" && 
+                    lead.email_sent_status !== "queued" && 
+                    lead.email_sent_status !== "sending" && 
+                    lead.email_sent_status !== "not_sent" && 
+                    lead.email_sent_status !== "idle";
                   const isSent = (
                     (stageLog && (
                       stageLog.status === "sent" || 
@@ -1261,7 +1273,7 @@ export default function MailerPage() {
                       stageLog.status === "rejected"
                     )) ||
                     (activeStage === "initial" 
-                      ? lead.email_sent_status === "success" 
+                      ? (!!lead.email_sent_at || !!hasInitialSentStatus) 
                       : !!lead[currentStageConfig.sentAtKey])
                   );
 
