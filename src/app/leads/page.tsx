@@ -258,6 +258,12 @@ export default function LeadsPage() {
 
   const sentCount = leads.filter(l => {
     const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    const hasInitialSentStatus = l.email_sent_status && 
+      l.email_sent_status !== "failed" && 
+      l.email_sent_status !== "queued" && 
+      l.email_sent_status !== "sending" && 
+      l.email_sent_status !== "not_sent" && 
+      l.email_sent_status !== "idle";
     return (
       (stageLog && (
         stageLog.status === "sent" || 
@@ -269,7 +275,7 @@ export default function LeadsPage() {
         stageLog.status === "rejected"
       )) ||
       (activeStage === "initial" 
-        ? l.email_sent_status === "success" 
+        ? (!!l.email_sent_at || !!hasInitialSentStatus) 
         : !!l[currentStageConfig.sentAtKey])
     );
   }).length;
@@ -282,6 +288,12 @@ export default function LeadsPage() {
   const notSentCount = leads.filter(l => {
     const hasDraft = !!l[currentStageConfig.draftKey] && l[currentStageConfig.draftKey] !== 'N/A';
     const stageLog = l.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    const hasInitialSentStatus = l.email_sent_status && 
+      l.email_sent_status !== "failed" && 
+      l.email_sent_status !== "queued" && 
+      l.email_sent_status !== "sending" && 
+      l.email_sent_status !== "not_sent" && 
+      l.email_sent_status !== "idle";
     const isSent = (
       (stageLog && (
         stageLog.status === "sent" || 
@@ -293,7 +305,7 @@ export default function LeadsPage() {
         stageLog.status === "rejected"
       )) ||
       (activeStage === "initial" 
-        ? l.email_sent_status === "success" 
+        ? (!!l.email_sent_at || !!hasInitialSentStatus) 
         : !!l[currentStageConfig.sentAtKey])
     );
     if (activeStage === "initial") return !isSent && l.email_sent_status !== "failed" && hasDraft;
@@ -321,6 +333,12 @@ export default function LeadsPage() {
   const matchesStatusFilter = (lead: any) => {
     const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== "N/A";
     const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    const hasInitialSentStatus = lead.email_sent_status && 
+      lead.email_sent_status !== "failed" && 
+      lead.email_sent_status !== "queued" && 
+      lead.email_sent_status !== "sending" && 
+      lead.email_sent_status !== "not_sent" && 
+      lead.email_sent_status !== "idle";
     const isSent = (
       (stageLog && (
         stageLog.status === "sent" || 
@@ -332,7 +350,7 @@ export default function LeadsPage() {
         stageLog.status === "rejected"
       )) ||
       (activeStage === "initial" 
-        ? lead.email_sent_status === "success" 
+        ? (!!lead.email_sent_at || !!hasInitialSentStatus) 
         : !!lead[currentStageConfig.sentAtKey])
     );
     const leadStatus = (lead.status || "").toLowerCase().trim();
@@ -370,19 +388,44 @@ export default function LeadsPage() {
     const isSent = !!lead[currentStageConfig.sentAtKey];
     const sentAt = lead[currentStageConfig.sentAtKey] as string | null;
     const hasDraft = !!lead[currentStageConfig.draftKey] && lead[currentStageConfig.draftKey] !== 'N/A';
+    const stageLog = lead.logs?.find((log: any) => log.email_type === currentStageConfig.id);
+    let logStatus = stageLog?.status;
 
-    const formatSentDate = (iso: string | null) => {
+    // Use lead.email_sent_status as a fallback for initial stage (e.g. if RLS blocks email_logs)
+    if (!logStatus && activeStage === "initial" && lead.email_sent_status) {
+      logStatus = lead.email_sent_status;
+    }
+
+    const formatEventDate = (iso: string | null) => {
       if (!iso) return null;
-      return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      return new Date(iso).toLocaleString(undefined, { 
+        month: "short", 
+        day: "numeric", 
+        hour: "2-digit", 
+        minute: "2-digit",
+        hour12: true 
+      });
     };
 
-    const status = getEffectiveOutreachStatus(lead);
+    // Determine the precise timestamp for the current log status
+    let eventTime: string | null = sentAt;
+    if (logStatus && stageLog) {
+      const s = logStatus.toLowerCase();
+      if (s === "delivered" && stageLog.delivered_at) eventTime = stageLog.delivered_at;
+      else if (s === "opened" && stageLog.opened_at) eventTime = stageLog.opened_at;
+      else if (s === "clicked" && stageLog.clicked_at) eventTime = stageLog.clicked_at;
+      else if (s === "bounced" && stageLog.bounced_at) eventTime = stageLog.bounced_at;
+      else if (s === "complained" && stageLog.complained_at) eventTime = stageLog.complained_at;
+      else if (s === "sent" && stageLog.sent_at) eventTime = stageLog.sent_at;
+      else if (s === "queued" && stageLog.queued_at) eventTime = stageLog.queued_at;
+      else if (s === "failed" && stageLog.updated_at) eventTime = stageLog.updated_at;
+    }
 
-    if (status && status !== "idle" && status !== "not_sent") {
+    if (logStatus && logStatus !== "success" && logStatus !== "pending") {
       return (
         <div className="flex flex-col gap-0.5 animate-in fade-in duration-200 text-left">
-          <OutreachStatusBadge lead={lead} onClick={() => openLogsModal(lead)} />
-          {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
+          <OutreachStatusBadge lead={lead} status={logStatus} onClick={() => openLogsModal(lead)} />
+          {eventTime && <span className="text-[10px] text-neutral-400 mt-0.5">{formatEventDate(eventTime)}</span>}
         </div>
       );
     }
@@ -391,8 +434,8 @@ export default function LeadsPage() {
     return (
       <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
         {activeStage === "initial" ? (
-          lead.email_sent_status === "success" ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+          (lead.email_sent_status === "success" || logStatus === "success") ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-750 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
           ) : lead.email_sent_status === "failed" ? (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 w-fit"><AlertCircle size={10} /> Failed</span>
           ) : hasDraft ? (
@@ -402,14 +445,14 @@ export default function LeadsPage() {
           )
         ) : (
           isSent ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-755 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit"><CheckCircle2 size={10} /> Sent</span>
           ) : hasDraft ? (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 w-fit">Ready</span>
           ) : (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 w-fit">No draft</span>
           )
         )}
-        {sentAt && <span className="text-[10px] text-neutral-400 mt-0.5">{formatSentDate(sentAt)}</span>}
+        {eventTime && <span className="text-[10px] text-neutral-400 mt-0.5">{formatEventDate(eventTime)}</span>}
       </div>
     );
   };
@@ -1611,7 +1654,7 @@ function TableView({
             <th className="p-4 font-semibold w-[15%]">Scores</th>
             <th className="p-4 font-semibold w-[20%]">Research Points</th>
             <th className="p-4 font-semibold w-[10%]">CRM Status</th>
-            <th className="p-4 font-semibold w-[10%]">Outreach Status</th>
+            <th className="p-4 font-semibold w-[10%]">Email Log</th>
             <th className="p-4 font-semibold w-[5%] text-right">Actions</th>
           </tr>
         </thead>
