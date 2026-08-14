@@ -755,9 +755,9 @@ export default function MailerPage() {
       <div className="flex flex-col gap-0.5 animate-in fade-in duration-200">
         {activeStage === "initial" ? (
           (lead.email_sent_status === "success" || logStatus === "success") ? (
-            <span onClick={() => openLogsModal(lead)} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-750 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit cursor-pointer hover:opacity-80 transition-opacity"><CheckCircle2 size={10} /> Sent</span>
+            <OutreachStatusBadge lead={lead} status="sent" onClick={() => openLogsModal(lead)} />
           ) : lead.email_sent_status === "failed" ? (
-            <span onClick={() => openLogsModal(lead)} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 w-fit cursor-pointer hover:opacity-80 transition-opacity"><AlertCircle size={10} /> Failed</span>
+            <OutreachStatusBadge lead={lead} status="failed" onClick={() => openLogsModal(lead)} />
           ) : hasDraft ? (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 w-fit">Ready to send</span>
           ) : (
@@ -765,7 +765,7 @@ export default function MailerPage() {
           )
         ) : (
           isSent ? (
-            <span onClick={() => openLogsModal(lead)} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-750 dark:bg-emerald-500/10 dark:text-emerald-400 w-fit cursor-pointer hover:opacity-80 transition-opacity"><CheckCircle2 size={10} /> Sent</span>
+            <OutreachStatusBadge lead={lead} status="sent" onClick={() => openLogsModal(lead)} />
           ) : hasDraft ? (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 w-fit">Ready to send</span>
           ) : (

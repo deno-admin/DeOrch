@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Loader2, Send, CheckCircle2, Eye, AlertCircle, Search, Sparkles, Check } from "lucide-react";
+import { Loader2, Send, CheckCircle2, Eye, AlertCircle, Search, Sparkles, Check, MoreHorizontal } from "lucide-react";
 import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 
 interface OutreachStatusBadgeProps {
@@ -93,27 +93,29 @@ export function OutreachStatusBadge({ lead, onClick, status: statusProp }: Outre
   const style = getOutreachStatusStyle(status);
   const icon = getOutreachStatusIcon(status);
 
-  const badgeContent = (
-    <>
-      {icon}
-      <span className="capitalize select-none">{(status || "").replace("_", " ")}</span>
-    </>
-  );
-
-  if (lead.latestLog && onClick) {
+  if (onClick) {
     return (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          onClick();
-        }}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border hover:opacity-85 transition-all w-fit select-none outline-none ${style}`}
-        style={{ cursor: "pointer" }}
+      <div
+        className={`inline-flex items-center text-[10px] font-semibold rounded-full border w-fit select-none outline-none ${style}`}
       >
-        {badgeContent}
-      </button>
+        <div className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1">
+          {icon}
+          <span className="capitalize">{(status || "").replace("_", " ")}</span>
+        </div>
+        <div className="w-px h-3.5 bg-current opacity-20" />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onClick();
+          }}
+          className="flex items-center justify-center pl-1.5 pr-2.5 py-1 hover:opacity-70 transition-opacity cursor-pointer outline-none"
+          title="Open log history"
+        >
+          <MoreHorizontal size={10} className="stroke-[3]" />
+        </button>
+      </div>
     );
   }
 
@@ -122,7 +124,8 @@ export function OutreachStatusBadge({ lead, onClick, status: statusProp }: Outre
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-full border w-fit select-none ${style}`}
       style={{ cursor: "default" }}
     >
-      {badgeContent}
+      {icon}
+      <span className="capitalize">{(status || "").replace("_", " ")}</span>
     </span>
   );
 }
