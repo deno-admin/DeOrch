@@ -443,7 +443,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
                   <p className="text-xs text-neutral-400 italic text-center p-4">No event timestamps recorded for this log.</p>
                 ) : (
                   <div className="relative border-l border-neutral-200 dark:border-neutral-800 pl-6 ml-3 space-y-6">
-                    {getLogEvents(latestLog).map((event, index) => (
+                    {getLogEvents(latestLog).map((event: any, index: number) => (
                       <div key={index} className="relative text-left">
                         {/* Dot / Icon container */}
                         <span className={`absolute -left-[35px] top-0.5 flex items-center justify-center w-6 h-6 rounded-full border-2 bg-white dark:bg-neutral-900 ${event.color} shadow-sm`}>
