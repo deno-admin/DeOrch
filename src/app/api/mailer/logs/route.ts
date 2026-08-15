@@ -11,15 +11,45 @@ export async function GET(request: Request) {
     }
 
     const adminClient = getLeadsAdminClient();
-    const { data: logs, error } = await adminClient
+
+    // 1. Fetch email logs
+    const { data: logs, error: logsError } = await adminClient
       .from("email_logs")
       .select("*")
       .eq("lead_id", leadId)
       .order("updated_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching email logs:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (logsError) {
+      console.error("Error fetching email logs:", logsError);
+      return NextResponse.json({ error: logsError.message }, { status: 500 });
+    }
+
+    // 2. Fetch chronological event history for all returned logs
+    if (logs && logs.length > 0) {
+      const logIds = logs.map(log => log.id);
+      const { data: history, error: historyError } = await adminClient
+        .from("email_event_history")
+        .select("*")
+        .in("email_log_id", logIds)
+        .order("event_timestamp", { ascending: true });
+
+      if (historyError) {
+        console.error("Error fetching email event history:", historyError);
+      } else if (history) {
+        // Group history events by email_log_id
+        const historyMap: Record<number, any[]> = {};
+        history.forEach((event: any) => {
+          if (!historyMap[event.email_log_id]) {
+            historyMap[event.email_log_id] = [];
+          }
+          historyMap[event.email_log_id].push(event);
+        });
+
+        // Attach event history list to each log
+        logs.forEach(log => {
+          log.email_event_history = historyMap[log.id] || [];
+        });
+      }
     }
 
     return NextResponse.json({ logs });
