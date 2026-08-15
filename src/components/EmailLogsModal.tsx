@@ -124,7 +124,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
           icon = <Mail size={12} className="text-indigo-500" />;
           color = 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20';
         } else if (t === 'open') {
-          title = 'Loaded by proxy';
+          title = 'Opened';
           icon = <CheckCircle2 size={12} className="text-indigo-500" />;
           color = 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20';
         } else if (t === 'click') {
@@ -180,7 +180,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
     if (log.opened_at) {
       events.push({
         type: 'open',
-        title: 'Loaded by proxy',
+        title: 'Opened',
         time: formatTime(log.opened_at),
         ip: log.event_data?.open_ip || '104.28.38.184',
         icon: <CheckCircle2 size={12} className="text-indigo-500" />,
