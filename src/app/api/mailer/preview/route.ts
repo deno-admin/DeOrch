@@ -14,13 +14,16 @@ export async function POST(request: Request) {
     // real lead without ever sending them an email.
     const unsubscribeUrl = "javascript:void(0)";
 
-    const html = renderColdOutreachEmail({
+    let html = renderColdOutreachEmail({
       companyName: companyName || "",
       firstName: firstName || "",
       draftText,
       unsubscribeUrl,
       stage: typeof stage === "string" ? stage : "initial",
     });
+
+    // Strip open tracker placeholder from CRM preview so it is invisible to the user
+    html = html.replaceAll("{{ses:openTracker}}", "");
 
     return NextResponse.json({ html });
   } catch (error) {
