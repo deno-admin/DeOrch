@@ -74,6 +74,7 @@ a[x-apple-data-detectors],
 @media screen and (max-width:384px) {.mail-message-content { width:414px!important } }</style>
  </head>
  <body class="body" style="width:100%;height:100%;font-family:arial, 'helvetica neue', helvetica, sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;padding:0;Margin:0">
+  {{ses:openTracker}}
   <div dir="ltr" lang="en" class="es-wrapper-color" style="background-color:#F6F6F6"><!--[if gte mso 9]>
  <v:background xmlns:v="urn:schemas-microsoft-com:vml" fill="t">
    <v:fill type="tile"  color="#f6f6f6" ></v:fill>
