@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Loader2, Send, CheckCircle2, Eye, AlertCircle, Trash2 } from "lucide-react";
+import { X, Loader2, Send, CheckCircle2, AlertCircle, Trash2, Mail, ExternalLink, MousePointerClick } from "lucide-react";
 
 interface EmailLogsModalProps {
   lead: any;
@@ -109,52 +109,36 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
 
     // If we have event history, map directly from it (chronological order)
     if (log.email_event_history && log.email_event_history.length > 0) {
-      const events = log.email_event_history.map((event: any) => {
+      return log.email_event_history.map((event: any) => {
         let title = event.event_type;
-        let icon = <CheckCircle2 size={10} className="text-neutral-500" />;
-        let color = 'border-neutral-500 bg-neutral-50 dark:bg-neutral-950/30';
+        let icon = <CheckCircle2 size={12} className="text-indigo-500" />;
+        let color = 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20';
 
         const t = (event.event_type || "").toLowerCase().trim();
         if (t === 'send') {
           title = 'Sent';
-          icon = <Send size={10} className="text-blue-500" />;
-          color = 'border-blue-500 bg-blue-50 dark:bg-blue-950/30';
+          icon = <Send size={12} className="text-neutral-500" />;
+          color = 'border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900';
         } else if (t === 'delivery') {
           title = 'Delivered';
-          icon = <CheckCircle2 size={10} className="text-emerald-500" />;
-          color = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30';
+          icon = <Mail size={12} className="text-indigo-500" />;
+          color = 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20';
         } else if (t === 'open') {
-          title = 'Opened';
-          icon = <Eye size={10} className="text-teal-500" />;
-          color = 'border-teal-500 bg-teal-50 dark:bg-teal-950/30';
+          title = 'Loaded by proxy';
+          icon = <CheckCircle2 size={12} className="text-indigo-500" />;
+          color = 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20';
         } else if (t === 'click') {
-          title = 'Link Clicked';
-          icon = <Eye size={10} className="text-purple-500" />;
-          color = 'border-purple-500 bg-purple-50 dark:bg-purple-950/30';
+          title = 'Clicked';
+          icon = <MousePointerClick size={12} className="text-emerald-500" />;
+          color = 'border-emerald-100 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20';
         } else if (t === 'bounce') {
           title = 'Bounced';
-          icon = <AlertCircle size={10} className="text-rose-500" />;
-          color = 'border-rose-500 bg-rose-50 dark:bg-rose-950/30';
+          icon = <AlertCircle size={12} className="text-rose-500" />;
+          color = 'border-rose-100 bg-rose-50/50 dark:border-rose-900/30 dark:bg-rose-950/20';
         } else if (t === 'complaint') {
           title = 'Marked as Spam';
-          icon = <AlertCircle size={10} className="text-orange-500" />;
-          color = 'border-orange-500 bg-orange-50 dark:bg-orange-950/30';
-        } else if (t === 'reject') {
-          title = 'Rejected';
-          icon = <AlertCircle size={10} className="text-rose-500" />;
-          color = 'border-rose-500 bg-rose-50 dark:bg-rose-950/30';
-        } else if (t === 'rendering failure') {
-          title = 'Rendering Failure';
-          icon = <AlertCircle size={10} className="text-rose-500" />;
-          color = 'border-rose-500 bg-rose-50 dark:bg-rose-950/30';
-        } else if (t === 'delivery delay') {
-          title = 'Delivery Delay';
-          icon = <Loader2 size={12} className="animate-spin text-amber-500" />;
-          color = 'border-amber-500 bg-amber-50 dark:bg-amber-950/30';
-        } else if (t === 'subscription') {
-          title = 'Subscription Changed';
-          icon = <CheckCircle2 size={10} className="text-indigo-500" />;
-          color = 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30';
+          icon = <AlertCircle size={12} className="text-orange-500" />;
+          color = 'border-orange-100 bg-orange-50/50 dark:border-orange-900/30 dark:bg-orange-950/20';
         }
 
         return {
@@ -169,103 +153,65 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
           color
         };
       });
-
-      // Prepend a queued event if queued_at is recorded
-      if (log.queued_at) {
-        events.unshift({
-          type: 'queued',
-          title: 'Queued in Mailer',
-          time: formatTime(log.queued_at),
-          icon: <Loader2 size={12} className="animate-spin text-amber-500" />,
-          color: 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
-        });
-      }
-
-      return events;
     }
 
     // Fallback: derive events from single timestamps in logs
-    const events: { type: string; title: string; time: string; ip?: string; icon: React.ReactNode; color: string }[] = [];
-
-    if (log.queued_at) {
-      events.push({
-        type: 'queued',
-        title: 'Queued in Mailer',
-        time: formatTime(log.queued_at),
-        icon: <Loader2 size={12} className="animate-spin text-amber-500" />,
-        color: 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
-      });
-    }
+    const events: any[] = [];
     if (log.sent_at) {
       events.push({
-        type: 'sent',
+        type: 'send',
         title: 'Sent',
         time: formatTime(log.sent_at),
-        ip: log.event_data?.sender_ip || '172.226.0.10',
-        icon: <Send size={10} className="text-blue-500" />,
-        color: 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+        ip: log.event_data?.sender_ip || '77.32.148.20',
+        icon: <Send size={12} className="text-neutral-500" />,
+        color: 'border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900'
       });
     }
     if (log.delivered_at) {
       events.push({
-        type: 'delivered',
+        type: 'delivery',
         title: 'Delivered',
         time: formatTime(log.delivered_at),
         ip: log.event_data?.recipient_ip || '77.32.148.20',
-        icon: <CheckCircle2 size={10} className="text-emerald-500" />,
-        color: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
+        icon: <Mail size={12} className="text-indigo-500" />,
+        color: 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20'
       });
     }
     if (log.opened_at) {
       events.push({
-        type: 'opened',
-        title: 'First opening',
+        type: 'open',
+        title: 'Loaded by proxy',
         time: formatTime(log.opened_at),
-        ip: log.event_data?.open_ip || '142.250.32.101',
-        icon: <Eye size={10} className="text-teal-500" />,
-        color: 'border-teal-500 bg-teal-50 dark:bg-teal-950/30'
+        ip: log.event_data?.open_ip || '104.28.38.184',
+        icon: <CheckCircle2 size={12} className="text-indigo-500" />,
+        color: 'border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-950/20'
       });
     }
     if (log.clicked_at) {
       events.push({
-        type: 'clicked',
-        title: 'Link Clicked',
+        type: 'click',
+        title: 'Clicked',
         time: formatTime(log.clicked_at),
-        ip: log.event_data?.click_ip || '142.250.32.101',
-        icon: <Eye size={10} className="text-purple-500" />,
-        color: 'border-purple-500 bg-purple-50 dark:bg-purple-950/30'
+        ip: log.event_data?.click_ip || '72.153.153.42',
+        icon: <MousePointerClick size={12} className="text-emerald-500" />,
+        color: 'border-emerald-100 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20'
       });
     }
-    if (log.bounced_at) {
-      events.push({
-        type: 'bounced',
-        title: 'Bounced',
-        time: formatTime(log.bounced_at),
-        icon: <AlertCircle size={10} className="text-rose-500" />,
-        color: 'border-rose-500 bg-rose-50 dark:bg-rose-950/30'
-      });
-    }
-    if (log.complained_at) {
-      events.push({
-        type: 'complained',
-        title: 'Marked as Spam',
-        time: formatTime(log.complained_at),
-        icon: <AlertCircle size={10} className="text-orange-500" />,
-        color: 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
-      });
-    }
-    if (log.status === 'failed' && log.error_message) {
-      events.push({
-        type: 'failed',
-        title: 'Delivery Failed',
-        time: formatTime(log.updated_at),
-        ip: log.error_message,
-        icon: <AlertCircle size={10} className="text-rose-500" />,
-        color: 'border-rose-500 bg-rose-50 dark:bg-rose-950/30'
-      });
-    }
-
     return events;
+  };
+
+  const getClickedLinks = (log: any) => {
+    const linkCounts: Record<string, number> = {};
+    if (log.email_event_history && log.email_event_history.length > 0) {
+      log.email_event_history.forEach((event: any) => {
+        if ((event.event_type || "").toLowerCase().trim() === 'click' && event.link) {
+          linkCounts[event.link] = (linkCounts[event.link] || 0) + 1;
+        }
+      });
+    } else if (log.clicked_at && log.event_data?.click_link) {
+      linkCounts[log.event_data.click_link] = 1;
+    }
+    return Object.entries(linkCounts);
   };
 
   if (!lead) return null;
@@ -296,15 +242,18 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
     );
   }
 
+  const events = getLogEvents(latestLog);
+  const clickedLinks = getClickedLinks(latestLog);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-4xl h-[85vh] border border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-5xl h-[85vh] border border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
-          <h2 className="text-base font-bold text-neutral-800 dark:text-neutral-200 truncate pr-4">
+          <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200 truncate pr-4">
             {latestLog.subject || `Quick thought on ${lead.company}'s website`}
           </h2>
           <button 
@@ -315,46 +264,51 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
           </button>
         </div>
 
-        {/* Modal Content */}
-        <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-neutral-200 dark:divide-neutral-800 bg-neutral-50 dark:bg-neutral-950">
+        {/* Modal Content Split View */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-neutral-200 dark:divide-neutral-800 bg-white dark:bg-neutral-900">
+          
           {/* Left Panel: Details and Email Preview */}
-          <div className="flex flex-col overflow-hidden p-5 space-y-4">
-            <div className="space-y-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-sm shrink-0">
-              <h3 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Details</h3>
-              <div className="grid grid-cols-[85px_1fr] gap-x-2 gap-y-1.5 text-xs">
-                <span className="text-neutral-400">Sent on</span>
-                <span className="text-neutral-700 dark:text-neutral-300 font-medium">
-                  {latestLog.sent_at 
-                    ? new Date(latestLog.sent_at).toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' at') 
-                    : "N/A"
-                  }
-                </span>
+          <div className="flex flex-col overflow-hidden p-6 space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100">Details</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Sent on</span>
+                  <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                    {latestLog.sent_at 
+                      ? new Date(latestLog.sent_at).toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' at') 
+                      : "N/A"
+                    }
+                  </p>
+                </div>
                 
-                <span className="text-neutral-400">Sender (From)</span>
-                <span className="text-neutral-700 dark:text-neutral-300 truncate font-mono select-all">
-                  {latestLog.sender_email || "N/A"}
-                </span>
+                <div className="space-y-1">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Sender (From)</span>
+                  <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate select-all">
+                    {latestLog.sender_email || "N/A"}
+                  </p>
+                </div>
                 
-                <span className="text-neutral-400">Recipient (To)</span>
-                <span className="text-neutral-700 dark:text-neutral-300 truncate font-mono select-all">
-                  {latestLog.recipient_email}
-                </span>
+                <div className="space-y-1">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Recipient (To)</span>
+                  <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate select-all">
+                    {latestLog.recipient_email}
+                  </p>
+                </div>
                 
-                <span className="text-neutral-400">Message ID</span>
-                <span className="text-neutral-600 dark:text-neutral-400 truncate font-mono text-[10px] select-all bg-neutral-100 dark:bg-neutral-950 px-1 py-0.5 rounded border border-neutral-255 dark:border-neutral-800">
-                  {latestLog.message_id || "Pending SMTP dispatch..."}
-                </span>
+                <div className="space-y-1">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Message ID</span>
+                  <p className="text-xs font-mono text-neutral-800 dark:text-neutral-200 truncate select-all max-w-full">
+                    {latestLog.message_id || "<Pending SMTP dispatch...>"}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm flex flex-col">
-              <div className="p-3 border-b border-neutral-100 dark:border-neutral-800 shrink-0 flex items-center justify-between bg-neutral-50/55 dark:bg-neutral-900/55">
-                <span className="text-xs font-semibold text-neutral-500">Email Preview</span>
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400">
-                  {latestLog.email_type || "initial"}
-                </span>
-              </div>
-              <div className="flex-1 bg-neutral-50 dark:bg-neutral-950 overflow-hidden relative">
+            {/* Email Preview Frame */}
+            <div className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl flex flex-col min-h-[250px]">
+              <div className="flex-1 bg-white dark:bg-neutral-950 overflow-hidden relative">
                 {isLogPreviewLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
@@ -370,121 +324,71 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
             </div>
           </div>
 
-          {/* Right Panel: History timeline */}
-          <div className="flex flex-col overflow-hidden p-5 space-y-4">
-            <div className="p-1 shrink-0">
-              <h3 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">History</h3>
-            </div>
+          {/* Right Panel: History and Clicked Links */}
+          <div className="flex flex-col overflow-hidden p-6 space-y-6">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100">History</h3>
 
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-sm flex flex-col min-h-0">
-              {/* Summary Information Cards (Only shown if we have event history) */}
-              {latestLog.email_event_history && latestLog.email_event_history.length > 0 && (() => {
-                const linkCounts: Record<string, number> = {};
-                latestLog.email_event_history.forEach((event: any) => {
-                  if ((event.event_type || "").toLowerCase().trim() === 'click' && event.link) {
-                    linkCounts[event.link] = (linkCounts[event.link] || 0) + 1;
-                  }
-                });
-                const linkEntries = Object.entries(linkCounts);
-
-                const formatDateNice = (isoStr: string | null) => {
-                  if (!isoStr) return "";
-                  return new Date(isoStr).toLocaleDateString(undefined, { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  });
-                };
-
-                return (
-                  <div className="mb-5 p-4 bg-neutral-50 dark:bg-neutral-950/30 rounded-2xl border border-neutral-200/50 dark:border-neutral-800/40 text-xs shrink-0 space-y-3">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-0.5">
-                        <span className="text-neutral-400 font-semibold uppercase tracking-wider text-[10px]">Total Opens</span>
-                        <p className="text-base font-bold text-teal-600 dark:text-teal-400">{latestLog.open_count || 0} {latestLog.open_count === 1 ? 'time' : 'times'}</p>
-                        {latestLog.last_opened_at && (
-                          <p className="text-[9px] text-neutral-400 truncate">
-                            Last: {formatDateNice(latestLog.last_opened_at)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-0.5">
-                        <span className="text-neutral-400 font-semibold uppercase tracking-wider text-[10px]">Total Clicks</span>
-                        <p className="text-base font-bold text-purple-600 dark:text-purple-400">{latestLog.click_count || 0} {latestLog.click_count === 1 ? 'time' : 'times'}</p>
-                        {latestLog.last_clicked_at && (
-                          <p className="text-[9px] text-neutral-400 truncate">
-                            Last: {formatDateNice(latestLog.last_clicked_at)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {linkEntries.length > 0 && (
-                      <div className="pt-2 border-t border-neutral-200/50 dark:border-neutral-800/50">
-                        <span className="text-neutral-400 font-semibold uppercase tracking-wider text-[10px] block mb-1.5">Links Clicked:</span>
-                        <ul className="space-y-1 text-[10px] font-mono text-neutral-600 dark:text-neutral-400 max-h-24 overflow-y-auto pr-1">
-                          {linkEntries.map(([link, count]) => (
-                            <li key={link} className="flex justify-between gap-4 py-0.5 border-b border-dashed border-neutral-100 dark:border-neutral-800/20 last:border-0">
-                              <a href={link} target="_blank" rel="noopener noreferrer" className="truncate text-indigo-600 dark:text-indigo-400 hover:underline select-all cursor-pointer" title={link}>{link}</a>
-                              <span className="shrink-0 font-bold text-purple-600 dark:text-purple-400">{count} {count === 1 ? 'click' : 'clicks'}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 flex flex-col">
               {/* Timeline list */}
-              <div className="flex-1 overflow-y-auto pr-1">
-                {getLogEvents(latestLog).length === 0 ? (
-                  <p className="text-xs text-neutral-400 italic text-center p-4">No event timestamps recorded for this log.</p>
+              <div className="flex-1">
+                {events.length === 0 ? (
+                  <p className="text-sm text-neutral-400 italic text-center p-4">No event history recorded.</p>
                 ) : (
                   <div className="relative border-l border-neutral-200 dark:border-neutral-800 pl-6 ml-3 space-y-6">
-                    {getLogEvents(latestLog).map((event: any, index: number) => (
+                    {events.map((event: any, index: number) => (
                       <div key={index} className="relative text-left">
                         {/* Dot / Icon container */}
-                        <span className={`absolute -left-[35px] top-0.5 flex items-center justify-center w-6 h-6 rounded-full border-2 bg-white dark:bg-neutral-900 ${event.color} shadow-sm`}>
+                        <span className={`absolute -left-[37px] top-0 flex items-center justify-center w-6 h-6 rounded-full border bg-white dark:bg-neutral-900 ${event.color} shadow-sm`}>
                           {event.icon}
                         </span>
                         
                         {/* Event info */}
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{event.title}</h4>
-                            {event.isBot && (
-                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/20 shadow-sm">Bot</span>
-                            )}
-                          </div>
-                          {event.link && (
-                            <div className="text-[10px] text-neutral-600 dark:text-neutral-400 font-mono select-all bg-neutral-50 dark:bg-neutral-950/40 w-fit px-1.5 py-0.5 rounded border border-neutral-100 dark:border-neutral-800/40 break-all max-w-full">
-                              Link: <a href={event.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{event.link}</a>
-                            </div>
-                          )}
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{event.title}</h4>
                           {event.ip && (
-                            <p className="text-[10px] text-neutral-500 font-mono select-all bg-neutral-50 dark:bg-neutral-950/40 w-fit px-1.5 py-0.2 rounded border border-neutral-100 dark:border-neutral-800/40">IP: {event.ip}</p>
+                            <p className="text-xs text-neutral-600 dark:text-neutral-400 font-mono">{event.ip}</p>
                           )}
-                          {event.userAgent && (
-                            <p className="text-[9px] text-neutral-400 select-all max-w-xs md:max-w-sm truncate" title={event.userAgent}>UA: {event.userAgent}</p>
-                          )}
-                          <p className="text-[10px] text-neutral-400 font-medium">{event.time}</p>
+                          <p className="text-[11px] text-neutral-400">{event.time}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* Clicked Links Card */}
+              {clickedLinks.length > 0 && (
+                <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 bg-white dark:bg-neutral-900/50 space-y-4 shrink-0">
+                  <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Clicked links</h4>
+                  <div className="space-y-3 divide-y divide-neutral-100 dark:divide-neutral-850">
+                    {clickedLinks.map(([link, count], idx) => (
+                      <div key={link} className={`space-y-1 ${idx > 0 ? "pt-3" : ""}`}>
+                        <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider block">Links</span>
+                        <a 
+                          href={link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 font-mono break-all"
+                        >
+                          <span>{link}</span>
+                          <ExternalLink size={12} className="shrink-0" />
+                        </a>
+                        <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider block pt-1">Number of clicks</span>
+                        <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{count}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 shrink-0">
+        <div className="flex items-center justify-end gap-3 p-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0">
           <button
             onClick={() => onDeleteLog(latestLog.id)}
-            className="flex items-center gap-1.5 px-3 py-2 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-350 text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer rounded-lg"
           >
             <Trash2 size={14} />
             <span>Delete log</span>
@@ -492,7 +396,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
           
           <button
             onClick={() => onResendEmail(lead.id, latestLog.email_type || "initial")}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm shadow-indigo-600/20"
+            className="flex items-center gap-1.5 px-4 py-2 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-850 dark:text-neutral-200 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm bg-white dark:bg-neutral-900"
           >
             <Send size={14} />
             <span>Resend email</span>
