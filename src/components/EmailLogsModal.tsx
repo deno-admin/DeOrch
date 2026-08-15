@@ -128,7 +128,7 @@ export function EmailLogsModal({ lead, onClose, onDeleteLog, onResendEmail }: Em
           icon = <Eye size={10} className="text-teal-500" />;
           color = 'border-teal-500 bg-teal-50 dark:bg-teal-950/30';
         } else if (t === 'click') {
-          title = 'Clicked';
+          title = 'Link Clicked';
           icon = <Eye size={10} className="text-purple-500" />;
           color = 'border-purple-500 bg-purple-50 dark:bg-purple-950/30';
         } else if (t === 'bounce') {

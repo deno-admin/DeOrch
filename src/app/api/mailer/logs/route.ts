@@ -25,6 +25,9 @@ export async function GET(request: Request) {
     }
 
     // 2. Fetch chronological event history for all returned logs
+    let debugHistory = null;
+    let debugHistoryError = null;
+
     if (logs && logs.length > 0) {
       const logIds = logs.map(log => log.id);
       const { data: history, error: historyError } = await adminClient
@@ -32,6 +35,9 @@ export async function GET(request: Request) {
         .select("*")
         .in("email_log_id", logIds)
         .order("event_timestamp", { ascending: true });
+
+      debugHistory = history;
+      debugHistoryError = historyError;
 
       if (historyError) {
         console.error("Error fetching email event history:", historyError);
