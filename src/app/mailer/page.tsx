@@ -871,21 +871,6 @@ export default function MailerPage() {
 
           <button
             type="button"
-            onClick={() => {
-              const targetLead = selectedIds.length > 0
-                ? leads.find(l => selectedIds.includes(l.id)) || leads[0]
-                : leads[0];
-              if (targetLead) setAiModalLead(targetLead);
-              else alert("No leads available. Please add or select a lead first.");
-            }}
-            title="Open AI Outbound OS Agent Modal for selected lead(s)"
-            className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-          >
-            <Sparkles size={16} /> AI Outbound OS
-          </button>
-
-          <button
-            type="button"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
             title="Refresh leads from the database"
