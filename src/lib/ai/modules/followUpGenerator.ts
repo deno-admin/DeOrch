@@ -1,79 +1,73 @@
 import { generateStructured } from "../provider";
-import { FollowUpSequenceResult, LeadResearchResult, WebsiteAuditResult, OutreachStrategyResult } from "../types";
+import { LeadResearchResult, WebsiteAuditResult } from "../types";
 
-export interface FollowUpGeneratorInput {
+export interface SingleFollowUpInput {
   leadId?: number;
   name: string;
   role: string;
   company: string;
-  initialSubject: string;
-  initialBody: string;
-  research?: Partial<LeadResearchResult>;
-  audit?: Partial<WebsiteAuditResult>;
-  strategy?: Partial<OutreachStrategyResult>;
+  stage: "follow_up_1" | "follow_up_2" | "follow_up_3" | "follow_up_4" | "follow_up_5";
+  initialSubject?: string;
+  previousDraft?: string; // Body of the email immediately preceding this follow-up
+  researchPoints?: string[];
+  auditOpportunities?: string[];
 }
 
-export async function runFollowUpGenerator(input: FollowUpGeneratorInput) {
+export interface SingleFollowUpResult {
+  stage: string;
+  subject: string;
+  body: string;
+  angle_used: string;
+  word_count: number;
+}
+
+export async function runSingleFollowUpGenerator(input: SingleFollowUpInput) {
   const firstName = input.name ? input.name.split(" ")[0] : "there";
+  const stageNumber = input.stage.replace("follow_up_", "");
 
-  const systemPrompt = `You are a B2B Sequence Copywriting Expert.
-Your task is to generate 4 context-aware, non-pushy follow-up emails for a sales sequence.
+  const stageDescriptions: Record<string, string> = {
+    follow_up_1: "Follow-up #1 (3 days after initial email): A gentle, value-add check-in or specific operational observation.",
+    follow_up_2: "Follow-up #2 (7 days after initial email): A short industry insight, relevant benchmark, or case snippet.",
+    follow_up_3: "Follow-up #3 (12 days after initial email): A different angle or low-friction offer (e.g., offer to compare quick notes).",
+    follow_up_4: "Follow-up #4 (16 days after initial email): A practical perspective addressing potential implementation friction.",
+    follow_up_5: "Follow-up #5 (21 days after initial email - Breakup email): Polite, professional permission to close the file unless interested.",
+  };
 
-RULES FOR FOLLOW-UPS:
-- Each follow-up must add NEW value or a NEW angle rather than just saying "just bumping this".
-- Follow-up #1 (3 days delay): Quick value-add snippet or specific example.
-- Follow-up #2 (7 days delay): Brief case study or relevant insight.
-- Follow-up #3 (12 days delay): Different perspective or short video/audit offer.
-- Follow-up #4 (20 days delay - Breakup email): Polite permission to close the file.
-- Keep each follow-up under 80 words.
-- Natural human tone, no AI clichés.`;
+  const systemPrompt = `You are an elite B2B Sequence Copywriter.
+Your goal is to write Follow-up #${stageNumber} for a cold outreach sequence to ${input.name} (${input.role} at ${input.company}).
+
+CRITICAL COPYWRITING RULES:
+1. Base this follow-up directly on the PREVIOUS EMAIL DRAFT and research points provided.
+2. Build logically on what was said before without repeating the exact same wording.
+3. Keep it VERY CONCISE (Under 80 words).
+4. Natural, human tone. Never sound pushy or passive-aggressive ("Checking in again", "Did you see my last email?").
+5. ${stageDescriptions[input.stage] || "Contextual follow-up."}`;
 
   const userPrompt = `Prospect: ${input.name} (${input.role} at ${input.company})
+Target Stage: ${input.stage} (Follow-up #${stageNumber})
 
-Initial Email Sent:
-Subject: ${input.initialSubject}
-Body:
+Previous Email Draft Sent:
 """
-${input.initialBody}
+${input.previousDraft || "No previous draft provided."}
 """
 
-Outreach Strategy Context:
-${JSON.stringify(input.strategy || {}, null, 2)}
+Research Points & Context:
+${JSON.stringify(input.researchPoints || [], null, 2)}
 
-Generate 4 follow-up emails in JSON format:
+Audit Opportunities:
+${JSON.stringify(input.auditOpportunities || [], null, 2)}
+
+Generate Follow-up #${stageNumber} and return JSON:
 {
-  "follow_up_1": {
-    "stage": "follow_up_1",
-    "subject": "Re: ${input.initialSubject}",
-    "body": "Follow-up body for step 1...",
-    "delay_days": 3,
-    "angle_focus": "Specific metric or observation highlight"
-  },
-  "follow_up_2": {
-    "stage": "follow_up_2",
-    "subject": "Re: ${input.initialSubject}",
-    "body": "Follow-up body for step 2...",
-    "delay_days": 7,
-    "angle_focus": "Relevant industry benchmark"
-  },
-  "follow_up_3": {
-    "stage": "follow_up_3",
-    "subject": "Re: ${input.initialSubject}",
-    "body": "Follow-up body for step 3...",
-    "delay_days": 12,
-    "angle_focus": "Low-friction offer"
-  },
-  "follow_up_4": {
-    "stage": "follow_up_4",
-    "subject": "Re: ${input.initialSubject}",
-    "body": "Follow-up body for step 4 (breakup)...",
-    "delay_days": 20,
-    "angle_focus": "Closing the thread gracefully"
-  }
+  "stage": "${input.stage}",
+  "subject": "Re: ${input.initialSubject || "Quick question"}",
+  "body": "Hi ${firstName}, ...",
+  "angle_used": "Short description of angle",
+  "word_count": 65
 }`;
 
-  return generateStructured<FollowUpSequenceResult>({
-    task: "followup",
+  return generateStructured<SingleFollowUpResult>({
+    task: `followup_${stageNumber}`,
     leadId: input.leadId,
     systemPrompt,
     prompt: userPrompt,

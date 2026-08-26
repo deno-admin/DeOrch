@@ -17,13 +17,15 @@ import {
   Eye,
   RefreshCw,
   Filter,
-  Trash2
+  Trash2,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { supabaseLeads } from "@/lib/supabaseLeads";
 import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 import { EmailLogsModal } from "@/components/EmailLogsModal";
 import { OutreachStatusBadge } from "@/components/OutreachStatusBadge";
+import { LeadAIDetailsModal } from "@/components/LeadAIDetailsModal";
 
 interface MailerLead {
   id: number;
@@ -138,8 +140,9 @@ export default function MailerPage() {
   const [statusPos, setStatusPos] = useState({ top: 0, left: 0, width: 0 });
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // Email Tracking Logs Modal States
+  // Email Tracking Logs & AI OS Modal States
   const [selectedLogLead, setSelectedLogLead] = useState<MailerLead | null>(null);
+  const [aiModalLead, setAiModalLead] = useState<MailerLead | null>(null);
 
   const openLogsModal = (lead: MailerLead) => {
     setSelectedLogLead(lead);
@@ -868,6 +871,21 @@ export default function MailerPage() {
 
           <button
             type="button"
+            onClick={() => {
+              const targetLead = selectedIds.length > 0
+                ? leads.find(l => selectedIds.includes(l.id)) || leads[0]
+                : leads[0];
+              if (targetLead) setAiModalLead(targetLead);
+              else alert("No leads available. Please add or select a lead first.");
+            }}
+            title="Open AI Outbound OS Agent Modal for selected lead(s)"
+            className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+          >
+            <Sparkles size={16} /> AI Outbound OS
+          </button>
+
+          <button
+            type="button"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
             title="Refresh leads from the database"
@@ -1344,6 +1362,13 @@ export default function MailerPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={() => setAiModalLead(lead)}
+                            className="p-1.5 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors cursor-pointer"
+                            title="Open AI Outbound OS (Research, Audit, Draft Copy, Follow-ups)"
+                          >
+                            <Sparkles size={16} />
+                          </button>
+                          <button
                             onClick={() => previewEmail(lead.company, (lead.name || "").split(" ")[0], (lead[currentStageConfig.draftKey] as string) || "", currentStageConfig.id)}
                             disabled={!hasDraft || isPreviewLoading}
                             className="p-1.5 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -1537,6 +1562,15 @@ export default function MailerPage() {
             ))}
           </div>
         </>
+      )}
+
+      {aiModalLead && (
+        <LeadAIDetailsModal
+          lead={aiModalLead}
+          isOpen={!!aiModalLead}
+          onClose={() => setAiModalLead(null)}
+          onRefreshLead={() => fetchLeads({ silent: true })}
+        />
       )}
 
     </div>

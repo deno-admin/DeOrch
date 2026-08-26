@@ -6,18 +6,15 @@ import {
   Sparkles,
   Search,
   Globe,
-  Compass,
   Mail,
   MessageSquare,
   Activity,
+  Loader2,
   CheckCircle2,
   AlertCircle,
-  Loader2,
-  ChevronRight,
-  ExternalLink,
-  Zap,
-  BarChart3,
   Bot,
+  Layers,
+  ChevronRight,
   Send
 } from "lucide-react";
 
@@ -29,7 +26,7 @@ interface LeadAIDetailsModalProps {
 }
 
 export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: LeadAIDetailsModalProps) {
-  const [activeTab, setActiveTab] = useState<"research" | "audit" | "strategy" | "email" | "reply" | "activity">("research");
+  const [activeTab, setActiveTab] = useState<"research" | "audit" | "email" | "followups" | "reply" | "activity">("research");
   
   // State for AI execution
   const [isLoading, setIsLoading] = useState(false);
@@ -38,16 +35,30 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
   // Data states
   const [researchData, setResearchData] = useState<any>(null);
   const [auditData, setAuditData] = useState<any>(null);
-  const [strategyData, setStrategyData] = useState<any>(null);
   const [emailData, setEmailData] = useState<any>(null);
-  const [followupData, setFollowupData] = useState<any>(null);
+  
+  // Follow-ups state (stages 1 to 5)
+  const [selectedFollowUpStage, setSelectedFollowUpStage] = useState<string>("follow_up_1");
+  const [generatedFollowUps, setGeneratedFollowUps] = useState<Record<string, any>>({});
+  
+  // Reply Intelligence state
   const [replyInput, setReplyInput] = useState("");
   const [replyResult, setReplyResult] = useState<any>(null);
+  
+  // Activity logs state
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
 
   useEffect(() => {
     if (lead && isOpen) {
       fetchActivityLogs();
+      // Initialize existing follow-up drafts from lead object if present
+      const initialFollowUps: Record<string, any> = {};
+      if (lead.email_follow_up_1) initialFollowUps["follow_up_1"] = { body: lead.email_follow_up_1, subject: `Re: ${lead.subject || "Outreach"}` };
+      if (lead.email_follow_up_2) initialFollowUps["follow_up_2"] = { body: lead.email_follow_up_2, subject: `Re: ${lead.subject || "Outreach"}` };
+      if (lead.email_follow_up_3) initialFollowUps["follow_up_3"] = { body: lead.email_follow_up_3, subject: `Re: ${lead.subject || "Outreach"}` };
+      if (lead.email_follow_up_4) initialFollowUps["follow_up_4"] = { body: lead.email_follow_up_4, subject: `Re: ${lead.subject || "Outreach"}` };
+      if (lead.email_follow_up_5) initialFollowUps["follow_up_5"] = { body: lead.email_follow_up_5, subject: `Re: ${lead.subject || "Outreach"}` };
+      setGeneratedFollowUps(initialFollowUps);
     }
   }, [lead, isOpen]);
 
@@ -66,6 +77,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
 
   if (!isOpen || !lead) return null;
 
+  // 1. RUN RESEARCH AGENT (Company + Website + External Web -> Synthesis -> Audit)
   const handleRunResearch = async () => {
     setIsLoading(true);
     setActiveTask("research");
@@ -97,6 +109,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
     }
   };
 
+  // 2. RUN WEBSITE AUDIT
   const handleRunAudit = async () => {
     setIsLoading(true);
     setActiveTask("audit");
@@ -126,37 +139,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
     }
   };
 
-  const handleRunStrategy = async () => {
-    setIsLoading(true);
-    setActiveTask("strategy");
-    try {
-      const res = await fetch("/api/ai/strategy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId: lead.id,
-          name: lead.name,
-          role: lead.role,
-          company: lead.company,
-          research: researchData,
-          audit: auditData
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStrategyData(data.data);
-      } else {
-        alert(`Strategy generation failed: ${data.error}`);
-      }
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-      setActiveTask(null);
-      fetchActivityLogs();
-    }
-  };
-
+  // 3. GENERATE INITIAL PERSONALIZED COPY
   const handleRunEmail = async () => {
     setIsLoading(true);
     setActiveTask("email");
@@ -169,9 +152,8 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
           name: lead.name,
           role: lead.role,
           company: lead.company,
-          research: researchData,
-          audit: auditData,
-          strategy: strategyData
+          research: researchData || { research_points: lead.research_points ? [lead.research_points] : [] },
+          audit: auditData
         })
       });
       const data = await res.json();
@@ -190,9 +172,25 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
     }
   };
 
-  const handleRunFollowups = async () => {
+  // 4. GENERATE INDIVIDUAL FOLLOW-UP (ON-DEMAND BASED ON PREVIOUS DRAFT & RESEARCH)
+  const handleGenerateSingleFollowUp = async (stage: string) => {
     setIsLoading(true);
-    setActiveTask("followup");
+    setActiveTask(`followup_${stage}`);
+
+    // Determine previous draft
+    let previousDraft = emailData?.body || lead.email_draft || "";
+    if (stage === "follow_up_2") {
+      previousDraft = generatedFollowUps["follow_up_1"]?.body || previousDraft;
+    } else if (stage === "follow_up_3") {
+      previousDraft = generatedFollowUps["follow_up_2"]?.body || generatedFollowUps["follow_up_1"]?.body || previousDraft;
+    } else if (stage === "follow_up_4") {
+      previousDraft = generatedFollowUps["follow_up_3"]?.body || generatedFollowUps["follow_up_2"]?.body || previousDraft;
+    } else if (stage === "follow_up_5") {
+      previousDraft = generatedFollowUps["follow_up_4"]?.body || generatedFollowUps["follow_up_3"]?.body || previousDraft;
+    }
+
+    const researchPoints = researchData?.research_points || (lead.research_points ? [lead.research_points] : []);
+
     try {
       const res = await fetch("/api/ai/followup", {
         method: "POST",
@@ -202,16 +200,19 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
           name: lead.name,
           role: lead.role,
           company: lead.company,
+          stage: stage,
           initialSubject: emailData?.subject || lead.subject || "Outreach",
-          initialBody: emailData?.body || lead.email_draft || "",
-          research: researchData,
-          audit: auditData,
-          strategy: strategyData
+          previousDraft: previousDraft,
+          researchPoints: researchPoints,
+          auditOpportunities: auditData?.opportunities || []
         })
       });
       const data = await res.json();
       if (data.success) {
-        setFollowupData(data.data);
+        setGeneratedFollowUps(prev => ({
+          ...prev,
+          [stage]: data.data
+        }));
         if (onRefreshLead) onRefreshLead();
       } else {
         alert(`Follow-up generation failed: ${data.error}`);
@@ -225,6 +226,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
     }
   };
 
+  // 5. REPLY INTELLIGENCE
   const handleAnalyzeReply = async () => {
     if (!replyInput.trim()) return;
     setIsLoading(true);
@@ -258,6 +260,14 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
       fetchActivityLogs();
     }
   };
+
+  const followUpStagesList = [
+    { id: "follow_up_1", label: "Follow Up 1", delay: "3 days after initial" },
+    { id: "follow_up_2", label: "Follow Up 2", delay: "7 days after initial" },
+    { id: "follow_up_3", label: "Follow Up 3", delay: "12 days after initial" },
+    { id: "follow_up_4", label: "Follow Up 4", delay: "16 days after initial" },
+    { id: "follow_up_5", label: "Follow Up 5 (Breakup)", delay: "21 days after initial" },
+  ];
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
@@ -295,8 +305,8 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
           {[
             { id: "research", label: "Research Agent", icon: Search },
             { id: "audit", label: "Website Audit", icon: Globe },
-            { id: "strategy", label: "Outreach Strategy", icon: Compass },
             { id: "email", label: "Personalized Copy", icon: Mail },
+            { id: "followups", label: "Follow-ups (1 to 5)", icon: Layers },
             { id: "reply", label: "Reply Intelligence", icon: MessageSquare },
             { id: "activity", label: "AI Observability", icon: Activity },
           ].map((tab) => {
@@ -330,7 +340,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <Search className="text-indigo-500 w-4 h-4" /> AI Research Findings
                   </h3>
-                  <p className="text-xs text-neutral-500">Synthesized verified company intelligence and prospect context.</p>
+                  <p className="text-xs text-neutral-500">Synthesized web research, company background, and structured sales points.</p>
                 </div>
                 <button
                   onClick={handleRunResearch}
@@ -342,29 +352,30 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                 </button>
               </div>
 
-              {researchData ? (
+              {researchData || lead.research_points ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 space-y-2 col-span-2">
                     <span className="text-neutral-400 font-bold uppercase text-[10px]">Company Summary</span>
-                    <p className="text-sm font-medium leading-relaxed">{researchData.company_summary}</p>
+                    <p className="text-sm font-medium leading-relaxed">
+                      {researchData?.company_summary || lead.bio || `${lead.company} specializes in scalable enterprise services and market solutions.`}
+                    </p>
                   </div>
 
                   <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-1">
-                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Industry & Model</span>
-                    <p className="font-semibold text-sm">{researchData.industry}</p>
-                    <p className="text-neutral-500">Model: {researchData.business_model}</p>
+                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Industry</span>
+                    <p className="font-semibold text-sm">{researchData?.industry || lead.industry || "Software & Services"}</p>
                   </div>
 
                   <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-1">
                     <span className="text-neutral-400 font-bold uppercase text-[10px]">Target Audience</span>
-                    <p className="font-semibold text-sm">{researchData.target_audience}</p>
+                    <p className="font-semibold text-sm">{researchData?.target_audience || "Enterprise B2B Decision Makers"}</p>
                   </div>
 
                   <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2 col-span-2">
-                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Key Sales Connection Points</span>
-                    <ul className="space-y-1.5 list-disc pl-4">
-                      {researchData.research_points?.map((pt: string, idx: number) => (
-                        <li key={idx} className="text-neutral-700 dark:text-neutral-300 font-medium">{pt}</li>
+                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Extracted Research Connection Points</span>
+                    <ul className="space-y-1.5 list-disc pl-4 font-medium text-neutral-700 dark:text-neutral-300">
+                      {(researchData?.research_points || (lead.research_points ? lead.research_points.split("\n\n") : [])).map((pt: string, idx: number) => (
+                        <li key={idx}>{pt}</li>
                       ))}
                     </ul>
                   </div>
@@ -373,7 +384,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                 <div className="p-12 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-center space-y-3">
                   <Bot className="w-10 h-10 text-indigo-500 mx-auto" />
                   <h4 className="text-sm font-bold">No AI Research Generated Yet</h4>
-                  <p className="text-xs text-neutral-500 max-w-sm mx-auto">Click "Run AI Research" to scrape target website content and produce verified background research.</p>
+                  <p className="text-xs text-neutral-500 max-w-sm mx-auto">Click "Run AI Research" to scrape company website content and produce verified background research points.</p>
                   <button onClick={handleRunResearch} disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">
                     Start Research Agent
                   </button>
@@ -390,7 +401,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <Globe className="text-blue-500 w-4 h-4" /> Commercial Website Audit
                   </h3>
-                  <p className="text-xs text-neutral-500">Evaluates UX, messaging clarity, CTAs, conversion bottlenecks, and brand signals.</p>
+                  <p className="text-xs text-neutral-500">Evaluates site content for UX, messaging clarity, CTAs, and outreach opportunities.</p>
                 </div>
                 <button
                   onClick={handleRunAudit}
@@ -404,23 +415,19 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
 
               {auditData ? (
                 <div className="space-y-4 text-xs">
-                  {/* Score Banner */}
                   <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 flex items-center justify-between">
                     <div>
-                      <span className="text-neutral-400 font-bold uppercase text-[10px]">Overall Commercial Website Score</span>
+                      <span className="text-neutral-400 font-bold uppercase text-[10px]">Commercial Website Score</span>
                       <h4 className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{auditData.overall_score} / 100</h4>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                      auditData.priority === "high" ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40" : "bg-amber-100 text-amber-700 dark:bg-amber-950/40"
-                    }`}>
-                      {auditData.priority} Priority Opportunities
+                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40">
+                      Priority: {auditData.priority || "Medium"}
                     </span>
                   </div>
 
-                  {/* Issues & Opportunities */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2">
-                      <span className="text-neutral-400 font-bold uppercase text-[10px] text-rose-500">Identified Bottlenecks</span>
+                      <span className="text-neutral-400 font-bold uppercase text-[10px] text-rose-500">Identified Issues</span>
                       <div className="space-y-2">
                         {auditData.issues?.map((iss: any, idx: number) => (
                           <div key={idx} className="p-2 bg-rose-50/50 dark:bg-rose-950/10 rounded border border-rose-100 dark:border-rose-900/30">
@@ -432,10 +439,10 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                     </div>
 
                     <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2">
-                      <span className="text-neutral-400 font-bold uppercase text-[10px] text-emerald-500">Conversion Opportunities</span>
-                      <ul className="space-y-1.5 list-disc pl-4">
+                      <span className="text-neutral-400 font-bold uppercase text-[10px] text-emerald-500">Outreach Opportunities</span>
+                      <ul className="space-y-1.5 list-disc pl-4 font-medium text-neutral-700 dark:text-neutral-300">
                         {auditData.opportunities?.map((opp: string, idx: number) => (
-                          <li key={idx} className="text-neutral-700 dark:text-neutral-300 font-medium">{opp}</li>
+                          <li key={idx}>{opp}</li>
                         ))}
                       </ul>
                     </div>
@@ -454,125 +461,118 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
             </div>
           )}
 
-          {/* 3. OUTREACH STRATEGY TAB */}
-          {activeTab === "strategy" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <Compass className="text-purple-500 w-4 h-4" /> Commercial Outreach Strategy
-                  </h3>
-                  <p className="text-xs text-neutral-500">Determines the single strongest sales angle before writing copy.</p>
-                </div>
-                <button
-                  onClick={handleRunStrategy}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-50 shadow-sm"
-                >
-                  {isLoading && activeTask === "strategy" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  Generate Strategy
-                </button>
-              </div>
-
-              {strategyData ? (
-                <div className="space-y-4 text-xs">
-                  <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/40 bg-purple-50/30 dark:bg-purple-950/10 space-y-2">
-                    <span className="text-purple-700 dark:text-purple-400 font-bold uppercase text-[10px]">Primary Commercial Opportunity</span>
-                    <h4 className="text-sm font-bold text-neutral-900 dark:text-white leading-relaxed">{strategyData.primary_opportunity}</h4>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2">
-                      <span className="text-neutral-400 font-bold uppercase text-[10px]">Recommended Outreach Angle</span>
-                      <p className="font-semibold text-neutral-800 dark:text-neutral-200">{strategyData.recommended_angle}</p>
-                    </div>
-
-                    <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2">
-                      <span className="text-neutral-400 font-bold uppercase text-[10px]">Suggested Friction-Free CTA</span>
-                      <p className="font-semibold text-neutral-800 dark:text-neutral-200">{strategyData.suggested_cta}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-12 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-center space-y-3">
-                  <Compass className="w-10 h-10 text-purple-500 mx-auto" />
-                  <h4 className="text-sm font-bold">No Outreach Strategy Defined</h4>
-                  <p className="text-xs text-neutral-500 max-w-sm mx-auto">Click "Generate Strategy" to synthesize research and audit findings into an actionable outreach plan.</p>
-                  <button onClick={handleRunStrategy} disabled={isLoading} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold">
-                    Generate Strategy
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 4. PERSONALIZED COPY & FOLLOWUPS TAB */}
+          {/* 3. PERSONALIZED COPY TAB */}
           {activeTab === "email" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold flex items-center gap-2">
-                    <Mail className="text-emerald-500 w-4 h-4" /> AI Email Copy & Sequence
+                    <Mail className="text-emerald-500 w-4 h-4" /> Initial Cold Email Generation
                   </h3>
-                  <p className="text-xs text-neutral-500">Concise, human-sounding initial draft and follow-up sequence.</p>
+                  <p className="text-xs text-neutral-500">Generates concise, human initial outreach copy based on research & audit points.</p>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleRunEmail}
-                    disabled={isLoading}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                  >
-                    {isLoading && activeTask === "email" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    Generate Email
-                  </button>
-                  <button
-                    onClick={handleRunFollowups}
-                    disabled={isLoading}
-                    className="px-3 py-1.5 bg-neutral-900 dark:bg-neutral-800 hover:bg-neutral-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                  >
-                    {isLoading && activeTask === "followup" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    Generate Follow-ups
-                  </button>
-                </div>
+                <button
+                  onClick={handleRunEmail}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-50 shadow-sm"
+                >
+                  {isLoading && activeTask === "email" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  Generate Initial Draft
+                </button>
               </div>
 
-              {/* Initial Draft */}
-              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2">
+              <div className="p-5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-3">
                 <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-2">
-                  <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400">INITIAL COLD EMAIL DRAFT</span>
-                  <span className="text-[10px] text-neutral-400">Editable before sending</span>
+                  <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400 uppercase">Initial Outreach Draft</span>
+                  <span className="text-[10px] text-neutral-400">Generates draft with human review</span>
                 </div>
-                <div className="text-xs space-y-1">
-                  <p className="font-bold text-neutral-800 dark:text-neutral-200">Subject: {emailData?.subject || lead.subject || "Quick thought re: website"}</p>
-                  <div className="p-3 bg-neutral-50 dark:bg-neutral-950 rounded border border-neutral-100 dark:border-neutral-800 font-mono whitespace-pre-line text-neutral-700 dark:text-neutral-300">
-                    {emailData?.body || lead.email_draft || "No initial draft generated yet."}
+                <div className="text-xs space-y-2">
+                  <p className="font-bold text-neutral-800 dark:text-neutral-200">
+                    Subject: {emailData?.subject || lead.subject || "Quick question"}
+                  </p>
+                  <div className="p-4 bg-neutral-50 dark:bg-neutral-950 rounded-xl border border-neutral-100 dark:border-neutral-800 font-mono whitespace-pre-line text-neutral-700 dark:text-neutral-300 min-h-[120px]">
+                    {emailData?.body || lead.email_draft || "No initial draft generated yet. Click 'Generate Initial Draft' above."}
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Follow-up Sequence */}
-              {followupData && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase text-neutral-400">Generated Follow-up Sequence</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    {["follow_up_1", "follow_up_2", "follow_up_3", "follow_up_4"].map((stepKey, idx) => {
-                      const item = followupData[stepKey];
-                      if (!item) return null;
-                      return (
-                        <div key={idx} className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/50 space-y-1">
-                          <div className="flex items-center justify-between font-bold text-neutral-600 dark:text-neutral-400 text-[10px] uppercase">
-                            <span>Follow-up #{idx + 1} ({item.delay_days}d delay)</span>
-                            <span>{item.angle_focus}</span>
-                          </div>
-                          <p className="font-mono text-neutral-700 dark:text-neutral-300 whitespace-pre-line text-[11px] p-2 bg-white dark:bg-neutral-900 rounded border border-neutral-100 dark:border-neutral-800">
-                            {item.body}
-                          </p>
+          {/* 4. ON-DEMAND SEQUENTIAL FOLLOW-UPS TAB (1 to 5) */}
+          {activeTab === "followups" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <Layers className="text-purple-500 w-4 h-4" /> Sequential On-Demand Follow-ups (1 to 5)
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  Select a specific follow-up stage below to generate copy based on research points AND the previous draft.
+                </p>
+              </div>
+
+              {/* Stage selector pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {followUpStagesList.map((stg) => {
+                  const isSelected = selectedFollowUpStage === stg.id;
+                  const isGenerated = !!generatedFollowUps[stg.id]?.body;
+                  return (
+                    <button
+                      key={stg.id}
+                      onClick={() => setSelectedFollowUpStage(stg.id)}
+                      className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                        isSelected
+                          ? "border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 shadow-sm"
+                          : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50"
+                      }`}
+                    >
+                      {isGenerated && <CheckCircle2 size={12} className="text-emerald-500" />}
+                      {stg.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Stage Workspace */}
+              {(() => {
+                const currentStageObj = followUpStagesList.find(s => s.id === selectedFollowUpStage) || followUpStagesList[0];
+                const stageData = generatedFollowUps[selectedFollowUpStage];
+                const isTaskRunning = isLoading && activeTask === `followup_${selectedFollowUpStage}`;
+
+                return (
+                  <div className="p-5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                      <div>
+                        <h4 className="font-bold text-sm text-neutral-900 dark:text-white">{currentStageObj.label}</h4>
+                        <p className="text-xs text-neutral-500">{currentStageObj.delay}</p>
+                      </div>
+                      <button
+                        onClick={() => handleGenerateSingleFollowUp(selectedFollowUpStage)}
+                        disabled={isLoading}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm disabled:opacity-50"
+                      >
+                        {isTaskRunning ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        {stageData ? `Regenerate ${currentStageObj.label}` : `Generate ${currentStageObj.label}`}
+                      </button>
+                    </div>
+
+                    {stageData?.body ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                          Subject: {stageData.subject || `Re: ${emailData?.subject || lead.subject || "Outreach"}`}
+                        </p>
+                        <div className="p-4 bg-neutral-50 dark:bg-neutral-950 rounded-xl border border-neutral-100 dark:border-neutral-800 font-mono text-xs whitespace-pre-line text-neutral-700 dark:text-neutral-300 min-h-[100px]">
+                          {stageData.body}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center text-xs text-neutral-400 space-y-2">
+                        <p>No draft generated for {currentStageObj.label} yet.</p>
+                        <p className="text-[11px] text-neutral-500">Click "Generate {currentStageObj.label}" to craft a contextual follow-up based on research and previous copy.</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
@@ -583,7 +583,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <MessageSquare className="text-amber-500 w-4 h-4" /> AI Reply Intelligence
                 </h3>
-                <p className="text-xs text-neutral-500">Paste incoming prospect responses to classify intent and generate recommended actions.</p>
+                <p className="text-xs text-neutral-500">Paste incoming prospect email responses to classify intent and draft human replies.</p>
               </div>
 
               <div className="space-y-3">
@@ -591,7 +591,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                   rows={4}
                   value={replyInput}
                   onChange={(e) => setReplyInput(e.target.value)}
-                  placeholder="Paste prospect email reply text here..."
+                  placeholder="Paste received prospect email reply here..."
                   className="w-full p-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 outline-none font-mono"
                 />
                 <button
@@ -629,14 +629,14 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
             </div>
           )}
 
-          {/* 6. AI ACTIVITY TAB */}
+          {/* 6. AI OBSERVABILITY TAB */}
           {activeTab === "activity" && (
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-bold flex items-center gap-2">
-                  <Activity className="text-indigo-500 w-4 h-4" /> AI Execution & Cost Logs
+                  <Activity className="text-indigo-500 w-4 h-4" /> AI Execution & Observability Logs
                 </h3>
-                <p className="text-xs text-neutral-500">Audit trail of models used, token counts, latency, and request status.</p>
+                <p className="text-xs text-neutral-500">Audit trail of model usage, tokens consumed, latency, and status.</p>
               </div>
 
               <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden text-xs">
