@@ -27,12 +27,14 @@ import {
   AlertCircle,
   MailX,
   Eye,
-  Send
+  Send,
+  Sparkles
 } from "lucide-react";
 import { supabaseLeads } from "@/lib/supabaseLeads";
 import { getEffectiveOutreachStatus } from "@/lib/outreachStatus";
 import { EmailLogsModal } from "@/components/EmailLogsModal";
 import { OutreachStatusBadge } from "@/components/OutreachStatusBadge";
+import { LeadAIDetailsModal } from "@/components/LeadAIDetailsModal";
 
 const COLUMNS = ["New", "Qualified", "Contacted", "Follow Up", "Replied", "Meeting Scheduled", "Not Interested", "Unsubscribed"];
 
@@ -156,6 +158,7 @@ export default function LeadsPage() {
 
   // Email Tracking Logs Modal States
   const [selectedLogLead, setSelectedLogLead] = useState<any | null>(null);
+  const [aiModalLead, setAiModalLead] = useState<any | null>(null);
   const [sendingIds, setSendingIds] = useState<number[]>([]);
 
   const openLogsModal = (lead: any) => {
@@ -1357,6 +1360,17 @@ export default function LeadsPage() {
               onClick={(e) => { 
                 e.stopPropagation(); 
                 const lead = leads.find(l => l.id === openDropdownId);
+                if (lead) setAiModalLead(lead);
+                setOpenDropdownId(null);
+              }} 
+              className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Sparkles size={14} /> AI Outbound OS
+            </button>
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                const lead = leads.find(l => l.id === openDropdownId);
                 if (lead) openEditModal(lead); 
               }} 
               className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
@@ -1600,6 +1614,15 @@ export default function LeadsPage() {
           onClose={() => setSelectedLogLead(null)}
           onDeleteLog={handleDeleteLog}
           onResendEmail={handleResendEmail}
+        />
+      )}
+
+      {aiModalLead && (
+        <LeadAIDetailsModal
+          lead={aiModalLead}
+          isOpen={!!aiModalLead}
+          onClose={() => setAiModalLead(null)}
+          onRefreshLead={fetchLeads}
         />
       )}
     </div>

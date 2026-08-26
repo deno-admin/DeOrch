@@ -281,55 +281,56 @@ export default function OutreachWorkflow() {
       });
   };
 
-  const handleGenerateMessages = () => {
+  const handleGenerateMessages = async () => {
     if (!activeLead) return;
     setIsGenerating(true);
-    setGenerationProgress(0);
+    setGenerationProgress(20);
 
-    const interval = setInterval(async () => {
-      setGenerationProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          const emailDraft = `Subject: Quick question re: cloud infrastructure at ${activeLead.company}
-
-Hi ${activeLead.name.split(" ")[0]},
-
-Came across your profile and noticed your role as ${activeLead.role} at ${activeLead.company}—incredibly impressive!
-
-I saw that you are operating in ${activeLead.industry} with an estimated team of ${activeLead.employee_count} employees. Given your current momentum, I figured scaling operations and keeping costs in check are top priorities right now.
-
-We help engineering and operations teams reduce infrastructure costs by up to 35% without interrupting pipelines. 
-
-Would you be open to a quick 10-minute chat next Tuesday to see if this makes sense for ${activeLead.company}?
-
-Best,
-Alex`;
-
-          const linkedinDraft = `Hi ${activeLead.name.split(" ")[0]}! Saw your profile as ${activeLead.role} at ${activeLead.company}. Congrats on the traction in ${activeLead.industry}! Would love to connect and share a few cost-saving automation tactics we've been testing. Cheers!`;
-
-          supabaseLeads
-            .from('deorch_leads')
-            .update({
-              outreach_status: 'generated',
-              email_draft: emailDraft,
-              linkedin_draft: linkedinDraft
-            })
-            .eq('id', activeLead.id)
-            .then(({ error }) => {
-              if (!error) {
-                setLeads(prev => prev.map((l, idx) => 
-                  idx === activeLeadIndex ? { ...l, emailDraft, linkedinDraft, status: "generated" } : l
-                ));
-              }
-            });
-
-          setIsGenerating(false);
-          return 100;
-        }
-        return prev + 25;
+    try {
+      setGenerationProgress(50);
+      const res = await fetch("/api/ai/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: activeLead.id,
+          name: activeLead.name,
+          role: activeLead.role,
+          company: activeLead.company,
+          research: {
+            research_points: activeLead.researchPoints
+          }
+        })
       });
-    }, 200);
+
+      const resData = await res.json();
+      setGenerationProgress(90);
+
+      if (resData.success && resData.data) {
+        const emailBody = resData.data.body;
+        const linkedinDraft = `Hi ${activeLead.name.split(" ")[0]}! Saw your profile as ${activeLead.role} at ${activeLead.company}. Would love to connect and share a few automation tactics we've been testing. Cheers!`;
+
+        await supabaseLeads
+          .from('deorch_leads')
+          .update({
+            outreach_status: 'generated',
+            subject: resData.data.subject,
+            email_draft: emailBody,
+            linkedin_draft: linkedinDraft
+          })
+          .eq('id', activeLead.id);
+
+        setLeads(prev => prev.map((l, idx) => 
+          idx === activeLeadIndex ? { ...l, emailDraft: emailBody, linkedinDraft, status: "generated" } : l
+        ));
+      } else {
+        alert(`Failed to generate email draft: ${resData.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      console.error("Generate messages error:", err);
+    } finally {
+      setGenerationProgress(100);
+      setIsGenerating(false);
+    }
   };
 
   const handleApprove = async () => {
