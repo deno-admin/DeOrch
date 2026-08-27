@@ -4,10 +4,40 @@ import { runEmailGenerator } from "@/lib/ai/modules/emailGenerator";
 
 export async function POST(request: Request) {
   try {
-    const { leadId, name, role, company, research, audit, strategy } = await request.json();
+    const { leadId, name, role, company, research } = await request.json();
 
     if (!leadId) {
       return NextResponse.json({ error: "leadId is required" }, { status: 400 });
+    }
+
+    const leadsAdmin = getLeadsAdminClient();
+
+    // Fetch evidence and commercial opportunities for the lead
+    let facts: string[] = [];
+    let observations: string[] = [];
+    let commercialOpportunities: any[] = [];
+
+    try {
+      const { data: evidenceRows } = await leadsAdmin
+        .from("deorch_research_evidence")
+        .select("type, claim, source_url")
+        .eq("lead_id", leadId);
+
+      if (evidenceRows && evidenceRows.length > 0) {
+        facts = evidenceRows.filter(e => e.type === "fact").map(e => e.claim);
+        observations = evidenceRows.filter(e => e.type === "observation").map(e => e.claim);
+      }
+
+      const { data: oppRows } = await leadsAdmin
+        .from("deorch_commercial_opportunities")
+        .select("opportunity, why_it_matters, priority")
+        .eq("lead_id", leadId);
+
+      if (oppRows && oppRows.length > 0) {
+        commercialOpportunities = oppRows;
+      }
+    } catch (e) {
+      console.warn("Could not fetch evidence rows for lead:", e);
     }
 
     const aiResponse = await runEmailGenerator({
@@ -15,9 +45,10 @@ export async function POST(request: Request) {
       name: name || "Prospect",
       role: role || "Executive",
       company: company || "Company",
-      research,
-      audit,
-      strategy,
+      facts: facts.length > 0 ? facts : (research?.facts || []),
+      observations: observations.length > 0 ? observations : (research?.observations || []),
+      commercialOpportunities: commercialOpportunities.length > 0 ? commercialOpportunities : (research?.commercial_opportunities || []),
+      researchPoints: research?.research_points || [],
     });
 
     if (!aiResponse.success || !aiResponse.data) {
@@ -28,7 +59,6 @@ export async function POST(request: Request) {
     }
 
     const emailResult = aiResponse.data;
-    const leadsAdmin = getLeadsAdminClient();
 
     // Persist to deorch_generated_messages table
     try {

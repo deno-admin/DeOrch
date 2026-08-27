@@ -1,9 +1,19 @@
+export interface ScrapedPageEvidence {
+  url: string;
+  title: string;
+  headings: string[];
+  cleanText: string;
+  scrapedAt: string;
+  observedClaims: string[];
+}
+
 export interface ScrapedWebsiteData {
   url: string;
   pagesScraped: string[];
   homepageContent: string;
   subpagesContent: string;
   combinedCleanText: string;
+  pageEvidences: ScrapedPageEvidence[];
   scrapedAt: string;
 }
 
@@ -40,7 +50,34 @@ function cleanHtmlToText(html: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-async function fetchPageText(targetUrl: string, timeoutMs = 5000): Promise<string> {
+function extractHeadings(html: string): string[] {
+  const headings: string[] = [];
+  const regex = /<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    const text = cleanHtmlToText(match[1]);
+    if (text && text.length > 3 && text.length < 120) {
+      headings.push(text);
+    }
+  }
+  return headings.slice(0, 8);
+}
+
+function extractTitle(html: string, fallbackUrl: string): string {
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (titleMatch && titleMatch[1]) {
+    const cleanTitle = cleanHtmlToText(titleMatch[1]);
+    if (cleanTitle) return cleanTitle;
+  }
+  const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  if (h1Match && h1Match[1]) {
+    const cleanH1 = cleanHtmlToText(h1Match[1]);
+    if (cleanH1) return cleanH1;
+  }
+  return fallbackUrl;
+}
+
+async function fetchPageDetails(targetUrl: string, timeoutMs = 5000): Promise<{ html: string; cleanText: string; title: string; headings: string[] } | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -56,12 +93,16 @@ async function fetchPageText(targetUrl: string, timeoutMs = 5000): Promise<strin
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) return "";
+    if (!response.ok) return null;
     const html = await response.text();
-    return cleanHtmlToText(html).substring(0, 4000);
+    const cleanText = cleanHtmlToText(html).substring(0, 3000);
+    const title = extractTitle(html, targetUrl);
+    const headings = extractHeadings(html);
+
+    return { html, cleanText, title, headings };
   } catch (err) {
     console.warn(`Failed to fetch page text for ${targetUrl}:`, err);
-    return "";
+    return null;
   }
 }
 
@@ -73,33 +114,67 @@ export async function scrapeWebsiteDetailed(rawUrl: string): Promise<ScrapedWebs
       homepageContent: "",
       subpagesContent: "",
       combinedCleanText: "",
+      pageEvidences: [],
       scrapedAt: new Date().toISOString(),
     };
   }
 
   const formattedUrl = rawUrl.startsWith("http") ? rawUrl.trim() : `https://${rawUrl.trim()}`;
-  const origin = new URL(formattedUrl).origin;
-
-  const pagesScraped: string[] = [];
-
-  // Step 1: Scrape Homepage
-  const homepageText = await fetchPageText(formattedUrl, 6000);
-  if (homepageText) {
-    pagesScraped.push(formattedUrl);
+  let origin = formattedUrl;
+  try {
+    origin = new URL(formattedUrl).origin;
+  } catch (e) {
+    origin = formattedUrl;
   }
 
-  // Step 2: Attempt candidate subpages (/about, /services, /pricing, /products)
+  const pagesScraped: string[] = [];
+  const pageEvidences: ScrapedPageEvidence[] = [];
+
+  // Step 1: Scrape Homepage
+  const hpDetails = await fetchPageDetails(formattedUrl, 6000);
+  let homepageText = "";
+
+  if (hpDetails && hpDetails.cleanText) {
+    homepageText = hpDetails.cleanText;
+    pagesScraped.push(formattedUrl);
+    
+    // Extract short sentence snippets as observed claims
+    const sentences = hpDetails.cleanText.split(/[.!?]+\s+/).filter(s => s.length > 20 && s.length < 180).slice(0, 6);
+
+    pageEvidences.push({
+      url: formattedUrl,
+      title: hpDetails.title,
+      headings: hpDetails.headings,
+      cleanText: hpDetails.cleanText,
+      scrapedAt: new Date().toISOString(),
+      observedClaims: sentences,
+    });
+  }
+
+  // Step 2: Candidate subpages (/about, /services, /pricing, /products)
   const candidatePaths = ["/about", "/services", "/pricing", "/products"];
   let subpagesTextAcc = "";
 
   for (const path of candidatePaths) {
     const subUrl = `${origin}${path}`;
-    if (subUrl !== formattedUrl) {
-      const pageText = await fetchPageText(subUrl, 4000);
-      if (pageText && pageText.length > 100) {
+    if (subUrl !== formattedUrl && !pagesScraped.includes(subUrl)) {
+      const pageDetails = await fetchPageDetails(subUrl, 4000);
+      if (pageDetails && pageDetails.cleanText.length > 100) {
         pagesScraped.push(subUrl);
-        subpagesTextAcc += `\n--- Page: ${path} ---\n` + pageText;
-        if (subpagesTextAcc.length > 5000) break; // Limit subpages accumulation
+        subpagesTextAcc += `\n--- Page: ${path} ---\n` + pageDetails.cleanText;
+        
+        const sentences = pageDetails.cleanText.split(/[.!?]+\s+/).filter(s => s.length > 20 && s.length < 180).slice(0, 4);
+
+        pageEvidences.push({
+          url: subUrl,
+          title: pageDetails.title,
+          headings: pageDetails.headings,
+          cleanText: pageDetails.cleanText,
+          scrapedAt: new Date().toISOString(),
+          observedClaims: sentences,
+        });
+
+        if (subpagesTextAcc.length > 4000) break;
       }
     }
   }
@@ -108,7 +183,7 @@ export async function scrapeWebsiteDetailed(rawUrl: string): Promise<ScrapedWebs
     `--- Homepage (${formattedUrl}) ---\n` +
     homepageText +
     (subpagesTextAcc ? `\n\n${subpagesTextAcc}` : "")
-  ).substring(0, 10000);
+  ).substring(0, 8000);
 
   return {
     url: formattedUrl,
@@ -116,6 +191,7 @@ export async function scrapeWebsiteDetailed(rawUrl: string): Promise<ScrapedWebs
     homepageContent: homepageText,
     subpagesContent: subpagesTextAcc.trim(),
     combinedCleanText,
+    pageEvidences,
     scrapedAt: new Date().toISOString(),
   };
 }

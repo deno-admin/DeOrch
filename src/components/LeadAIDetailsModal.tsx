@@ -15,7 +15,11 @@ import {
   Bot,
   Layers,
   ChevronRight,
-  Send
+  ExternalLink,
+  ShieldCheck,
+  Eye,
+  BrainCircuit,
+  TrendingUp
 } from "lucide-react";
 
 interface LeadAIDetailsModalProps {
@@ -77,7 +81,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
 
   if (!isOpen || !lead) return null;
 
-  // 1. RUN RESEARCH AGENT (Company + Website + External Web -> Synthesis -> Audit)
+  // 1. RUN EVIDENCE-BASED RESEARCH AGENT
   const handleRunResearch = async () => {
     setIsLoading(true);
     setActiveTask("research");
@@ -98,7 +102,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
         setResearchData(data.data);
         if (onRefreshLead) onRefreshLead();
       } else {
-        alert(`Research failed: ${data.error}`);
+        alert(`Evidence Research failed: ${data.error}`);
       }
     } catch (err: any) {
       alert(`Error: ${err.message}`);
@@ -177,7 +181,6 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
     setIsLoading(true);
     setActiveTask(`followup_${stage}`);
 
-    // Determine previous draft
     let previousDraft = emailData?.body || lead.email_draft || "";
     if (stage === "follow_up_2") {
       previousDraft = generatedFollowUps["follow_up_1"]?.body || previousDraft;
@@ -303,7 +306,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
         {/* Navigation Tabs */}
         <div className="flex items-center border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-950 px-6 gap-1 overflow-x-auto">
           {[
-            { id: "research", label: "Research Agent", icon: Search },
+            { id: "research", label: "Evidence Research", icon: Search },
             { id: "audit", label: "Website Audit", icon: Globe },
             { id: "email", label: "Personalized Copy", icon: Mail },
             { id: "followups", label: "Follow-ups (1 to 5)", icon: Layers },
@@ -332,15 +335,15 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
         {/* Modal Body */}
         <div className="p-6 flex-1 overflow-y-auto">
 
-          {/* 1. RESEARCH AGENT TAB */}
+          {/* 1. EVIDENCE-BASED RESEARCH AGENT TAB */}
           {activeTab === "research" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold flex items-center gap-2">
-                    <Search className="text-indigo-500 w-4 h-4" /> AI Research Findings
+                    <ShieldCheck className="text-emerald-500 w-5 h-5" /> Evidence-Based Research Engine
                   </h3>
-                  <p className="text-xs text-neutral-500">Synthesized web research, company background, and structured sales points.</p>
+                  <p className="text-xs text-neutral-500">Separates verified Facts, website Observations, AI Inferences, and Commercial Opportunities.</p>
                 </div>
                 <button
                   onClick={handleRunResearch}
@@ -348,45 +351,163 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-50 shadow-sm"
                 >
                   {isLoading && activeTask === "research" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  Run AI Research
+                  Run Evidence Research
                 </button>
               </div>
 
-              {researchData || lead.research_points ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 space-y-2 col-span-2">
-                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Company Summary</span>
-                    <p className="text-sm font-medium leading-relaxed">
-                      {researchData?.company_summary || lead.bio || `${lead.company} specializes in scalable enterprise services and market solutions.`}
+              {researchData ? (
+                <div className="space-y-5 text-xs">
+
+                  {/* Company Summary Banner */}
+                  <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-neutral-400 font-bold uppercase text-[10px]">Company Summary</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40">
+                        {researchData.company_research?.industry || lead.industry || "Software & Services"}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-neutral-800 dark:text-neutral-200">
+                      {researchData.company_research?.summary || lead.bio}
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-1">
-                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Industry</span>
-                    <p className="font-semibold text-sm">{researchData?.industry || lead.industry || "Software & Services"}</p>
+                  {/* 1. VERIFIED FACTS SECTION */}
+                  <div className="p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10 space-y-3">
+                    <div className="flex items-center justify-between border-b border-emerald-200/50 dark:border-emerald-900/30 pb-2">
+                      <span className="font-bold text-xs text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
+                        <ShieldCheck size={14} /> Facts (Verified Claims)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50">
+                        {researchData.facts?.length || 0} Verified
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {researchData.facts && researchData.facts.length > 0 ? (
+                        researchData.facts.map((fact: any, idx: number) => (
+                          <div key={idx} className="p-2.5 bg-white dark:bg-neutral-900 rounded-lg border border-emerald-100 dark:border-emerald-900/30 flex flex-col gap-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-medium text-neutral-800 dark:text-neutral-200">✓ {fact.claim}</span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950">
+                                Verified
+                              </span>
+                            </div>
+                            {fact.source_url && (
+                              <a href={fact.source_url} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-500 hover:underline flex items-center gap-1">
+                                <ExternalLink size={10} /> Source: {fact.source_title || fact.source_url}
+                              </a>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-neutral-400 italic text-[11px]">No external verified facts extracted.</p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-1">
-                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Target Audience</span>
-                    <p className="font-semibold text-sm">{researchData?.target_audience || "Enterprise B2B Decision Makers"}</p>
+                  {/* 2. DIRECT WEBSITE OBSERVATIONS SECTION */}
+                  <div className="p-4 rounded-xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/20 dark:bg-blue-950/10 space-y-3">
+                    <div className="flex items-center justify-between border-b border-blue-200/50 dark:border-blue-900/30 pb-2">
+                      <span className="font-bold text-xs text-blue-800 dark:text-blue-300 uppercase flex items-center gap-1.5">
+                        <Eye size={14} /> Website Observations (Observable Content)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50">
+                        {researchData.observations?.length || 0} Observed
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {researchData.observations && researchData.observations.length > 0 ? (
+                        researchData.observations.map((obs: any, idx: number) => (
+                          <div key={idx} className="p-2.5 bg-white dark:bg-neutral-900 rounded-lg border border-blue-100 dark:border-blue-900/30 flex flex-col gap-1">
+                            <span className="font-medium text-neutral-800 dark:text-neutral-200">◉ {obs.claim}</span>
+                            {obs.page_url && (
+                              <span className="text-[10px] text-neutral-500 font-mono">Page: {obs.page_url}</span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-neutral-400 italic text-[11px]">No direct website observations recorded.</p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2 col-span-2">
-                    <span className="text-neutral-400 font-bold uppercase text-[10px]">Extracted Research Connection Points</span>
-                    <ul className="space-y-1.5 list-disc pl-4 font-medium text-neutral-700 dark:text-neutral-300">
-                      {(researchData?.research_points || (lead.research_points ? lead.research_points.split("\n\n") : [])).map((pt: string, idx: number) => (
-                        <li key={idx}>{pt}</li>
-                      ))}
-                    </ul>
+                  {/* 3. REASONING INFERENCES SECTION */}
+                  <div className="p-4 rounded-xl border border-purple-200/80 dark:border-purple-900/40 bg-purple-50/20 dark:bg-purple-950/10 space-y-3">
+                    <div className="flex items-center justify-between border-b border-purple-200/50 dark:border-purple-900/30 pb-2">
+                      <span className="font-bold text-xs text-purple-800 dark:text-purple-300 uppercase flex items-center gap-1.5">
+                        <BrainCircuit size={14} /> AI Inferences (Reasoned Conclusions)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/50">
+                        {researchData.inferences?.length || 0} Inferences
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {researchData.inferences && researchData.inferences.length > 0 ? (
+                        researchData.inferences.map((inf: any, idx: number) => (
+                          <div key={idx} className="p-2.5 bg-white dark:bg-neutral-900 rounded-lg border border-purple-100 dark:border-purple-900/30 flex flex-col gap-1">
+                            <span className="font-medium text-neutral-800 dark:text-neutral-200">→ {inf.claim}</span>
+                            {inf.supporting_evidence_ids && inf.supporting_evidence_ids.length > 0 && (
+                              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                                Supporting Evidence: {inf.supporting_evidence_ids.join(", ")}
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-neutral-400 italic text-[11px]">No AI inferences generated.</p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* 4. COMMERCIAL OPPORTUNITIES SECTION */}
+                  <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10 space-y-3">
+                    <div className="flex items-center justify-between border-b border-amber-200/50 dark:border-amber-900/30 pb-2">
+                      <span className="font-bold text-xs text-amber-800 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                        <TrendingUp size={14} /> Commercial Outreach Opportunities
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 uppercase">
+                        Primary Hook
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {researchData.commercial_opportunities && researchData.commercial_opportunities.length > 0 ? (
+                        researchData.commercial_opportunities.map((opp: any, idx: number) => (
+                          <div key={idx} className="p-3 bg-white dark:bg-neutral-900 rounded-lg border border-amber-200/50 dark:border-amber-900/30 space-y-1">
+                            <h4 className="font-bold text-sm text-neutral-900 dark:text-white">{opp.opportunity}</h4>
+                            <p className="text-neutral-600 dark:text-neutral-300 text-xs">{opp.why_it_matters}</p>
+                            {opp.supporting_evidence_ids && opp.supporting_evidence_ids.length > 0 && (
+                              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
+                                Linked Evidence: {opp.supporting_evidence_ids.join(", ")}
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-neutral-400 italic text-[11px]">No commercial opportunities generated.</p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              ) : lead.research_points ? (
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-3 text-xs">
+                  <span className="text-neutral-400 font-bold uppercase text-[10px]">Legacy Research Connection Points</span>
+                  <ul className="space-y-1.5 list-disc pl-4 font-medium text-neutral-700 dark:text-neutral-300">
+                    {lead.research_points.split("\n\n").map((pt: string, idx: number) => (
+                      <li key={idx}>{pt}</li>
+                    ))}
+                  </ul>
                 </div>
               ) : (
                 <div className="p-12 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl text-center space-y-3">
                   <Bot className="w-10 h-10 text-indigo-500 mx-auto" />
-                  <h4 className="text-sm font-bold">No AI Research Generated Yet</h4>
-                  <p className="text-xs text-neutral-500 max-w-sm mx-auto">Click "Run AI Research" to scrape company website content and produce verified background research points.</p>
+                  <h4 className="text-sm font-bold">No Evidence Research Generated Yet</h4>
+                  <p className="text-xs text-neutral-500 max-w-sm mx-auto">Click "Run Evidence Research" to extract verified facts, website observations, and commercial opportunities.</p>
                   <button onClick={handleRunResearch} disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">
-                    Start Research Agent
+                    Start Evidence Research
                   </button>
                 </div>
               )}

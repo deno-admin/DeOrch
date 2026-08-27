@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getLeadsAdminClient } from "@/lib/supabaseAdmin";
 import { scrapeWebsiteDetailed } from "@/lib/scraper/websiteScraper";
+import { fetchTargetedExternalResearch } from "@/lib/scraper/externalResearch";
+import { buildEvidencePackage } from "@/lib/ai/evidenceEngine";
 import { runResearchAgent } from "@/lib/ai/modules/researchAgent";
 
 function getSimulatedResearch(name: string, company: string, role: string, domain: string) {
@@ -47,8 +49,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing leadId parameter" }, { status: 400 });
     }
 
-    // Step 1: Scrape target website using multi-page websiteScraper
-    const scrapedData = await scrapeWebsiteDetailed(website || "");
+    // Step 1: Scrape target website & external research
+    const [scrapedData, externalData] = await Promise.all([
+      scrapeWebsiteDetailed(website || ""),
+      fetchTargetedExternalResearch(company || "", website || "", role || ""),
+    ]);
+
+    const evidencePackage = buildEvidencePackage(
+      { leadId, name: name || "Lead", role: role || "Executive", company: company || "Company", website: website || "" },
+      scrapedData,
+      externalData
+    );
 
     // Step 2: Query AI Provider Layer via Research Agent
     const hasKey = process.env.NVIDIA_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.AI_API_KEY;
@@ -59,18 +70,14 @@ export async function POST(request: Request) {
     if (hasKey) {
       const aiRes = await runResearchAgent({
         leadId,
-        name: name || "Lead",
-        company: company || "Company",
-        role: role || "Role",
-        website: website || "",
-        scrapedContent: scrapedData.combinedCleanText,
+        evidencePackage,
       });
 
       if (aiRes.success && aiRes.data) {
         usedRealAI = true;
         analysisResult = {
-          industry: aiRes.data.industry || "SaaS",
-          bio: aiRes.data.company_summary || `${company} operates in ${aiRes.data.industry}.`,
+          industry: aiRes.data.company_research?.industry || "SaaS",
+          bio: aiRes.data.company_research?.summary || `${company} operates in ${aiRes.data.company_research?.industry}.`,
           employee_count: 50,
           funding_stage: "Privately Held",
           research_points: aiRes.data.research_points || []
