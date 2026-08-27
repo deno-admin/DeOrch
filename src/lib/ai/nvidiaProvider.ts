@@ -4,7 +4,7 @@ export async function callNVIDIAProvider(options: AIOptions): Promise<AIResponse
   const startTime = Date.now();
   const apiKey = process.env.NVIDIA_API_KEY || process.env.AI_API_KEY;
   const baseUrl = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
-  const model = options.model || process.env.AI_MODEL || "deepseek-ai/deepseek-r1";
+  const model = options.model || process.env.NVIDIA_MODEL || process.env.AI_MODEL || "meta/llama-3.1-70b-instruct";
 
   if (!apiKey) {
     return {

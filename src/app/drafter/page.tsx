@@ -5,17 +5,12 @@ import {
   Sparkles, 
   Copy, 
   Check, 
-  Send, 
   RefreshCw, 
   User, 
-  Building2, 
-  Briefcase, 
   Link as LinkIcon, 
   Wand2, 
   MessageSquare, 
-  Info, 
   Zap, 
-  ChevronRight, 
   Lightbulb, 
   FileText,
   Sliders,
@@ -34,27 +29,21 @@ interface DraftedMessages {
 
 const PRESETS = [
   {
-    personName: "Sarah Jenkins",
-    position: "Head of Product Design",
-    companyName: "Figma",
+    targetInput: "Sarah Jenkins, Head of Product Design at Figma",
     specialization: "Design Systems & Component Libraries",
     userPortfolio: "https://dribbble.com/designer-portfolio",
     tone: "Value-First & Professional",
     customHook: "Admire Figma's auto-layout updates and component variants workflow.",
   },
   {
-    personName: "Marcus Vance",
-    position: "Design Recruiting Manager",
-    companyName: "Stripe",
+    targetInput: "Marcus Vance, Design Recruiting Manager at Stripe",
     specialization: "SaaS & Complex Dashboards",
     userPortfolio: "https://myportfolio.design",
     tone: "Direct & Punchy",
     customHook: "Built fintech dashboard interfaces that increased task speed by 40%.",
   },
   {
-    personName: "Elena Rostova",
-    position: "VP of Product & Experience",
-    companyName: "Linear",
+    targetInput: "Elena Rostova, VP of Product & Experience at Linear",
     specialization: "UI/UX & Product Design",
     userPortfolio: "https://alexux.design",
     tone: "Creative & Passionate",
@@ -78,9 +67,7 @@ const SPECIALIZATION_OPTIONS = [
 ];
 
 export default function DrafterPage() {
-  const [personName, setPersonName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [position, setPosition] = useState("");
+  const [targetInput, setTargetInput] = useState("");
   const [userPortfolio, setUserPortfolio] = useState("");
   const [tone, setTone] = useState("Value-First & Professional");
   const [specialization, setSpecialization] = useState("UI/UX & Product Design");
@@ -89,16 +76,13 @@ export default function DrafterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DraftedMessages | null>(null);
-  const [aiMetadata, setAiMetadata] = useState<{ provider?: string; model?: string }>({});
   
   const [activeTab, setActiveTab] = useState<"dm" | "connection" | "followup">("dm");
   const [editedText, setEditedText] = useState("");
   const [copied, setCopied] = useState(false);
 
   const applyPreset = (preset: typeof PRESETS[0]) => {
-    setPersonName(preset.personName);
-    setPosition(preset.position);
-    setCompanyName(preset.companyName);
+    setTargetInput(preset.targetInput);
     setSpecialization(preset.specialization);
     setUserPortfolio(preset.userPortfolio);
     setTone(preset.tone);
@@ -108,8 +92,8 @@ export default function DrafterPage() {
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!personName.trim() || !companyName.trim() || !position.trim()) {
-      setError("Please fill in Person Name, Company Name, and Position.");
+    if (!targetInput.trim()) {
+      setError("Please enter the target person, position, and company.");
       return;
     }
 
@@ -122,9 +106,7 @@ export default function DrafterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          personName,
-          companyName,
-          position,
+          targetInput,
           userPortfolio,
           tone,
           specialization,
@@ -139,7 +121,6 @@ export default function DrafterPage() {
       }
 
       setResult(data.data);
-      setAiMetadata({ provider: data.provider, model: data.model });
       setEditedText(data.data.directMessage);
       setActiveTab("dm");
     } catch (err: any) {
@@ -165,36 +146,7 @@ export default function DrafterPage() {
   };
 
   return (
-    <div className="min-h-full p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* Page Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white p-6 sm:p-8 shadow-xl">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-indigo-200 border border-white/10">
-              <Sparkles size={14} className="text-amber-400" />
-              CareerOS AI Center • Powered by NVIDIA API
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              LinkedIn UI/UX Outreach Drafter
-            </h1>
-            <p className="text-indigo-200 text-sm sm:text-base max-w-2xl">
-              Turn target contacts & roles into personalized, high-converting LinkedIn messages seeking UI/UX Designer opportunities.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 self-start md:self-auto bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-white shadow-inner">
-              NV
-            </div>
-            <div className="text-xs">
-              <div className="font-semibold text-white">NVIDIA LLM Engine</div>
-              <div className="text-indigo-200">{aiMetadata.model || "meta/llama-3.1-70b"}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-full p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Quick Preset Fill Buttons */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-sm scrollbar-none">
         <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 shrink-0 flex items-center gap-1.5">
@@ -207,23 +159,21 @@ export default function DrafterPage() {
             onClick={() => applyPreset(preset)}
             className="shrink-0 px-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all text-xs font-medium flex items-center gap-1.5 shadow-sm"
           >
-            <span>{preset.personName}</span>
-            <span className="text-neutral-400">•</span>
-            <span className="text-neutral-500">{preset.companyName}</span>
+            <span>{preset.targetInput}</span>
           </button>
         ))}
       </div>
 
       {/* Main Grid: Input Form & Results */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Input Form */}
+        {/* Left Column: Single Input Form */}
         <div className="lg:col-span-5 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4">
             <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
               <Sliders size={18} className="text-indigo-500" />
-              Opportunity Parameters
+              LinkedIn Drafter
             </h2>
-            <span className="text-xs text-neutral-400">All fields tailored for UI/UX</span>
+            <span className="text-xs text-neutral-400">UI/UX Opportunity Pitch</span>
           </div>
 
           {error && (
@@ -234,58 +184,25 @@ export default function DrafterPage() {
           )}
 
           <form onSubmit={handleGenerate} className="space-y-4">
-            {/* Person Name */}
+            {/* Single Combined Target Field */}
             <div>
               <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Target Contact Name *
+                Target Person, Position & Company *
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="text"
+                <User className="absolute left-3.5 top-3.5 w-4 h-4 text-neutral-400" />
+                <textarea
+                  rows={2}
                   required
-                  placeholder="e.g. Sarah Jenkins"
-                  value={personName}
-                  onChange={(e) => setPersonName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  placeholder="e.g. Sarah Jenkins, Head of Product Design at Figma"
+                  value={targetInput}
+                  onChange={(e) => setTargetInput(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
                 />
               </div>
-            </div>
-
-            {/* Position */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Contact&apos;s Role / Position *
-              </label>
-              <div className="relative">
-                <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Head of Product Design / Talent Recruiter"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Target Company */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Target Company *
-              </label>
-              <div className="relative">
-                <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Figma / Stripe / Airbnb"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                />
-              </div>
+              <p className="text-[11px] text-neutral-400 mt-1">
+                Enter name, role, and company in a single line or pasted snippet.
+              </p>
             </div>
 
             {/* Design Specialization */}
@@ -396,7 +313,7 @@ export default function DrafterPage() {
                   Ready to Draft Your LinkedIn Pitch
                 </h3>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Fill in the target contact details on the left or choose one of the quick sample presets to generate tailored connection requests and InMail drafts.
+                  Enter target contact details on the left to generate tailored connection requests and InMail drafts.
                 </p>
               </div>
               <div className="pt-2 flex flex-wrap justify-center gap-4 text-xs text-neutral-500">
@@ -424,7 +341,7 @@ export default function DrafterPage() {
                   Crafting LinkedIn UI/UX Outreach Message...
                 </h3>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  NVIDIA AI is analyzing role context for {personName || "prospect"} at {companyName || "company"}...
+                  NVIDIA AI is analyzing prospect context...
                 </p>
               </div>
             </div>
@@ -543,15 +460,15 @@ export default function DrafterPage() {
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-md">
-                      {personName.charAt(0) || "P"}
+                      {targetInput.charAt(0) || "P"}
                     </div>
                     <div>
                       <div className="font-semibold text-sm flex items-center gap-1.5">
-                        <span>{personName || "Target Contact"}</span>
+                        <span>{targetInput.split(",")[0] || "Target Contact"}</span>
                         <span className="w-2 h-2 rounded-full bg-emerald-500" title="Online on LinkedIn" />
                       </div>
                       <div className="text-xs text-neutral-400 line-clamp-1">
-                        {position} at {companyName}
+                        {targetInput || "Target Prospect"}
                       </div>
                     </div>
                   </div>
