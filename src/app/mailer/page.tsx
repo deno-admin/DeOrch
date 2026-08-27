@@ -781,7 +781,7 @@ export default function MailerPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col relative">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mailer</h1>
@@ -1225,7 +1225,7 @@ export default function MailerPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm flex flex-col">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
@@ -1238,19 +1238,19 @@ export default function MailerPage() {
             <p className="text-neutral-500 max-w-sm">Try a different tab or clear your search.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
+          <div className="w-full overflow-x-auto no-scrollbar">
+            <table className="w-full text-left border-collapse table-fixed min-w-[850px]">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs uppercase tracking-wider text-neutral-500 sticky top-0 z-10 backdrop-blur-md">
-                  <th className="p-4 w-12 text-center">
-                    <input type="checkbox" checked={selectableLeads.length > 0 && selectableLeads.every(l => selectedIds.includes(l.id))} onChange={toggleSelectAll} className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500" />
+                  <th className="p-3.5 w-[40px] text-center">
+                    <input type="checkbox" checked={selectableLeads.length > 0 && selectableLeads.every(l => selectedIds.includes(l.id))} onChange={toggleSelectAll} className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
                   </th>
-                  <th className="p-4 font-semibold w-[18%]">Lead</th>
-                  <th className="p-4 font-semibold w-[22%]">Research Points</th>
-                  <th className="p-4 font-semibold w-[25%]">Draft Preview</th>
-                  <th className="p-4 font-semibold w-[12%]">Lead Status</th>
-                  <th className="p-4 font-semibold w-[13%]">Email Log</th>
-                  <th className="p-4 font-semibold w-[10%] text-right">Actions</th>
+                  <th className="p-3.5 font-semibold w-[20%]">Lead</th>
+                  <th className="p-3.5 font-semibold w-[22%]">Research Points</th>
+                  <th className="p-3.5 font-semibold w-[28%]">Draft Preview</th>
+                  <th className="p-3.5 font-semibold w-[12%]">Lead Status</th>
+                  <th className="p-3.5 font-semibold w-[13%]">Email Log</th>
+                  <th className="p-3.5 font-semibold w-[40px] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">

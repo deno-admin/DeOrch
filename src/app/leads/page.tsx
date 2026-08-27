@@ -803,7 +803,7 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col relative" onClick={() => setIsFilterModalOpen(false)}>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 relative" onClick={() => setIsFilterModalOpen(false)}>
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -1658,11 +1658,11 @@ function TableView({
   };
 
   return (
-    <div className="overflow-x-auto min-h-[400px]">
-      <table className="w-full text-left border-collapse min-w-[1200px]">
+    <div className="w-full overflow-x-auto no-scrollbar">
+      <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
         <thead>
           <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs uppercase tracking-wider text-neutral-500 sticky top-0 z-10 backdrop-blur-md">
-            <th className="p-4 w-12 text-center">
+            <th className="p-3.5 w-[40px] text-center">
               <input 
                 type="checkbox" 
                 checked={leads.length > 0 && leads.every(l => selectedIds.includes(l.id))}
@@ -1670,15 +1670,14 @@ function TableView({
                 className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
               />
             </th>
-            <th className="p-4 font-semibold w-[15%]">Lead Info</th>
-            <th className="p-4 font-semibold w-[15%]">Role & Company</th>
-            <th className="p-4 font-semibold w-[10%]">Location</th>
-            <th className="p-4 font-semibold w-[10%]">Links</th>
-            <th className="p-4 font-semibold w-[15%]">Scores</th>
-            <th className="p-4 font-semibold w-[20%]">Research Points</th>
-            <th className="p-4 font-semibold w-[10%]">CRM Status</th>
-            <th className="p-4 font-semibold w-[10%]">Email Log</th>
-            <th className="p-4 font-semibold w-[5%] text-right">Actions</th>
+            <th className="p-3.5 font-semibold w-[19%]">Lead Info</th>
+            <th className="p-3.5 font-semibold w-[16%]">Role & Company</th>
+            <th className="p-3.5 font-semibold w-[11%]">Location</th>
+            <th className="p-3.5 font-semibold w-[10%]">Links</th>
+            <th className="p-3.5 font-semibold w-[14%]">Scores</th>
+            <th className="p-3.5 font-semibold w-[16%]">Research Points</th>
+            <th className="p-3.5 font-semibold w-[10%]">CRM Status</th>
+            <th className="p-3.5 font-semibold w-[40px] text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">

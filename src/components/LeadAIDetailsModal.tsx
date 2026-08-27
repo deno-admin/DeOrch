@@ -304,7 +304,7 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-950 px-6 gap-1 overflow-x-auto">
+        <div className="flex items-center border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-950 px-6 gap-1 overflow-x-auto no-scrollbar">
           {[
             { id: "research", label: "Evidence Research", icon: Search },
             { id: "audit", label: "Website Audit", icon: Globe },
