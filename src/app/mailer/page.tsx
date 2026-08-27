@@ -1239,18 +1239,18 @@ export default function MailerPage() {
           </div>
         ) : (
           <div className="w-full overflow-x-auto no-scrollbar">
-            <table className="w-full text-left border-collapse table-fixed min-w-[850px]">
+            <table className="w-full text-left border-collapse min-w-[1150px]">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-xs uppercase tracking-wider text-neutral-500 sticky top-0 z-10 backdrop-blur-md">
-                  <th className="p-3.5 w-[40px] text-center">
+                  <th className="p-3.5 w-12 text-center">
                     <input type="checkbox" checked={selectableLeads.length > 0 && selectableLeads.every(l => selectedIds.includes(l.id))} onChange={toggleSelectAll} className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
                   </th>
-                  <th className="p-3.5 font-semibold w-[20%]">Lead</th>
-                  <th className="p-3.5 font-semibold w-[22%]">Research Points</th>
-                  <th className="p-3.5 font-semibold w-[28%]">Draft Preview</th>
-                  <th className="p-3.5 font-semibold w-[12%]">Lead Status</th>
-                  <th className="p-3.5 font-semibold w-[13%]">Email Log</th>
-                  <th className="p-3.5 font-semibold w-[40px] text-right">Actions</th>
+                  <th className="p-3.5 font-semibold min-w-[180px] w-[18%]">Lead</th>
+                  <th className="p-3.5 font-semibold min-w-[220px] w-[22%]">Research Points</th>
+                  <th className="p-3.5 font-semibold min-w-[240px] w-[26%]">Draft Preview</th>
+                  <th className="p-3.5 font-semibold min-w-[120px] w-[11%]">Lead Status</th>
+                  <th className="p-3.5 font-semibold min-w-[130px] w-[13%]">Email Log</th>
+                  <th className="p-3.5 font-semibold min-w-[100px] w-[10%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
