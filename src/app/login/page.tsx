@@ -52,7 +52,12 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950 px-4">
       <div className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 shadow-sm">
-        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-1">DeOrch</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center p-1.5 shadow-sm overflow-hidden shrink-0">
+            <img src="/logo.svg" alt="DeOrch Logo" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">DeOrch</h1>
+        </div>
         <p className="text-sm text-neutral-500 mb-6">Internal tool — sign in to continue.</p>
 
         {error && <p className="text-sm text-rose-500 mb-3">{error}</p>}

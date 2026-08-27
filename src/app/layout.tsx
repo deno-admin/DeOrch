@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   title: "DeOrch Platform",
   description: "Unified LeadOS and CareerOS platform",
   robots: { index: false, follow: false },
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

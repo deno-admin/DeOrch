@@ -69,9 +69,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-neutral-200 dark:border-neutral-800">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center p-1.5 shadow-sm overflow-hidden shrink-0">
+              <img src="/logo.svg" alt="DeOrch Logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
               DeOrch
