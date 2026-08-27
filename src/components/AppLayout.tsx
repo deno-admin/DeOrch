@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Mail,
   MessageSquare,
+  PenTool,
   Search, 
   Settings, 
   Sparkles, 
@@ -102,6 +103,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div>
             <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">CareerOS</h3>
             <div className="space-y-1">
+              <NavItem icon={<PenTool size={18} />} label="AI Drafter" href="/drafter" badge="AI" />
               <NavItem icon={<Briefcase size={18} />} label="Job Board" href="/jobs" />
               <NavItem icon={<Inbox size={18} />} label="Applications" href="/applications" />
               <NavItem icon={<Calendar size={18} />} label="Interviews" href="/interviews" />
