@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateStructured } from "@/lib/ai/provider";
 
 export interface DrafterRequest {
-  targetInput?: string; // e.g. "Nikunj, Founder at Asymmetric Labs" or "Sarah Jenkins, Head of Product Design at Figma"
+  targetInput?: string; // e.g. "Nikunj, Founder & Product Lead at Asymmetric Labs" or "Careers Team at Predigle"
   personName?: string;
   companyName?: string;
   position?: string;
@@ -10,6 +10,7 @@ export interface DrafterRequest {
   tone?: string;
   specialization?: string;
   customHook?: string;
+  draftType?: "initial" | "connection" | "followup";
 }
 
 export interface DraftedMessagesResponse {
@@ -31,9 +32,10 @@ export async function POST(req: Request) {
       companyName = "",
       position = "",
       userPortfolio = "https://kumaraguru-dk.framer.website/",
-      tone = "Value-First & Professional",
-      specialization = "UX Engineer & Product Design (UI/UX + Frontend Bridge)",
+      tone = "Direct & Punchy",
+      specialization = "UI/UX Designer",
       customHook = "",
+      draftType = "initial",
     } = body;
 
     const rawTargetContext = targetInput.trim() || `${personName} ${position ? `- ${position}` : ""} ${companyName ? `@ ${companyName}` : ""}`.trim();
@@ -47,51 +49,50 @@ export async function POST(req: Request) {
 
     const portfolioUrl = userPortfolio.trim() || "https://kumaraguru-dk.framer.website/";
 
-    const systemPrompt = `You are an elite Career & Design Outreach Strategist drafting tailored LinkedIn outreach messages for **Kumaragurubaran K**, a User Experience Designer and UX Engineer seeking UI/UX, Product Designer, or UX Engineer opportunities at target companies.
+    const systemPrompt = `You are an elite B2B Outreach Strategist writing concise, human, non-AI-sounding job application & outreach drafts for **Kumaragurubaran Karthikeyan**.
 
-APPLICANT MASTER PROFILE (KUMARAGURUBARAN K):
-- Full Name: Kumaragurubaran K
-- Core Positioning: UX Engineer & Product Designer who bridges UI/UX design and frontend development (Figma, Framer, React, Next.js, Tailwind CSS, HTML/CSS/JS).
-- Current Role: User Experience Designer at Denovation (Sep 2025 - Present) leading UX/UI design for digital products & brands (Denovation, Shifa & Smiles, Kalappai, Chameo, FaireLux).
-- Previous Experience: UI/UX Designer Intern at VorreiX (Jun 2025 - Sep 2025) working on Vorrei.io SaaS product — simplifying complex operational workflows, information hierarchy, dashboards, user flows, and reusable component systems.
-- Education: B.E. Computer Science and Engineering (2021-2025).
-- Portfolio URL: ${portfolioUrl}
+CANDIDATE MASTER PROFILE:
+- Full Name: Kumaragurubaran Karthikeyan
+- Current Role: User Experience Designer at Denovation (Sep 2025 - Present) — digital products & brand experiences (Denovation, Shifa & Smiles, Kalappai, Chameo, FaireLux).
+- Previous Role: UI/UX Design Intern at Vorreix (Jun 2025 - Sep 2025) — founding UI/UX designer for vorrei.io multi-organization SaaS platform.
+- Education: B.E. Computer Science and Engineering.
+- Portfolio: ${portfolioUrl}
 - Contact Phone: +91 8925161453
-- Key Strength: "Turning complex workflows into simple, development-ready digital experiences. Bridges the gap between design craft and developer handoff."
+- Key Rule: NEVER mention Kovan Labs under any circumstances!
 
-STRICT RULES & CONSTRAINTS:
-1. NEVER mention "Kovan Labs" under any circumstances.
-2. Ensure the messages sound authentic, human, concise, and non-spammy.
-3. Automatically reference or seamlessly integrate Kumaragurubaran's real experience (Denovation / VorreiX SaaS / design-development bridge) when relevant to the prospect's company.
-4. Always include his real portfolio link (${portfolioUrl}) naturally in the message.
-5. Adhere to the selected tone: ${tone}
-6. Selected Specialization Focus: ${specialization}
-7. Custom Hook/Note: ${customHook || "None provided"}
+COPYWRITING RULES:
+1. Tone: ${tone} (Be direct, concise, natural, sound like 1-on-1 human communication).
+2. Avoid AI filler/buzzwords ("hope this email finds you well", "delve", "game-changer", "thrilled to express my interest", "esteemed organization").
+3. Outreach Focus: ${specialization}
+4. Primary Target Context: "${rawTargetContext}"
+5. Custom Note / Hook: ${customHook || "None provided"}
+6. Primary Output Focus: ${draftType} (make sure ${draftType} draft is top priority and pitch-perfect).
 
-OUTPUT REQUIREMENTS (STRICT JSON):
-Respond ONLY with a JSON object containing the following exact keys:
-- "subjectLine": Catchy, non-gimmicky InMail subject line (5-8 words max, e.g. "UI/UX Designer & UX Engineer - Application & Portfolio").
-- "directMessage": Complete, polished LinkedIn DM / InMail (approx. 100-140 words). Written from Kumaragurubaran K's perspective to the target prospect ("${rawTargetContext}"). Naturally references his current UX work at Denovation, SaaS workflow experience at VorreiX, development-ready UI/UX background, includes his portfolio link (${portfolioUrl}), and ends with a friendly low-friction CTA (e.g. quick 10-min portfolio review or casual chat).
-- "connectionRequest": Short, high-impact LinkedIn connection request note (STRICTLY under 280 characters including spaces and link!).
-- "followUpMessage": Polished follow-up message to send 3-5 days later if they haven't replied (50-80 words).
-- "valueHighlights": Array of 3 bullet points summarizing the core value hooks used in these drafts for Kumaragurubaran.
-- "tipsForSuccess": Array of 2 actionable tips for sending this specific message on LinkedIn to maximize reply rates.`;
+OUTPUT REQUIREMENTS (STRICT JSON ONLY, KEEP CONCISE FOR SPEED):
+Return JSON object with keys:
+- "subjectLine": Short, crisp subject line (4-7 words, e.g., "UI/UX Designer Application - Kumaragurubaran").
+- "directMessage": Complete initial application email or InMail DM (approx 80-120 words). Mentions role/company context, current Denovation & Vorreix SaaS experience, portfolio link (${portfolioUrl}), and phone number +91 8925161453.
+- "connectionRequest": Short LinkedIn connection note (STRICTLY under 220 characters including portfolio link!).
+- "followUpMessage": Polished 2-3 sentence follow-up message (40-70 words).
+- "valueHighlights": Array of 3 concise bullet points highlighting key matching qualifications.
+- "tipsForSuccess": Array of 2 quick actionable sending tips.`;
 
-    const userPrompt = `Draft personalized LinkedIn outreach messages for Kumaragurubaran K seeking a UI/UX / Product Design / UX Engineer opportunity:
-Target Prospect & Role: "${rawTargetContext}"
-Specialization Focus: ${specialization}
-Portfolio: ${portfolioUrl}
-Tone: ${tone}
-${customHook ? `Custom Hook / Observation: ${customHook}` : ""}
+    const userPrompt = `Draft outreach messages for Kumaragurubaran Karthikeyan:
+- Target Prospect/Role: "${rawTargetContext}"
+- Focus: ${specialization}
+- Primary Draft Type: ${draftType}
+- Tone: ${tone}
+- Portfolio: ${portfolioUrl}
+${customHook ? `- Custom Hook: ${customHook}` : ""}
 
-Ensure the draft reflects Kumaragurubaran K's master summary background, SaaS workflow experience, and development-ready design skills.`;
+Keep the response direct, natural, and fast.`;
 
     const result = await generateStructured<DraftedMessagesResponse>({
       task: "draft_linkedin_uiux_outreach",
       prompt: userPrompt,
       systemPrompt: systemPrompt,
-      temperature: 0.7,
-      maxTokens: 1500,
+      temperature: 0.3, // Lower temperature for faster, deterministic execution
+      maxTokens: 900,  // Reduced maxTokens for much faster NVIDIA API response times
     });
 
     if (!result.success || !result.data) {
