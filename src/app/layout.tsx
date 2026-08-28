@@ -1,5 +1,6 @@
 import AppLayout from "../components/AppLayout";
 import type { Metadata } from "next";
+import { DrafterProvider } from "../context/DrafterContext";
 import "./globals.css";
 
 const geistSans = { variable: "" };
@@ -27,7 +28,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppLayout>{children}</AppLayout>
+        <DrafterProvider>
+          <AppLayout>{children}</AppLayout>
+        </DrafterProvider>
       </body>
     </html>
   );

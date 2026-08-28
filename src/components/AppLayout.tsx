@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
+import { useDrafter } from "@/context/DrafterContext";
+import DrafterWidget from "@/components/DrafterWidget";
 import { usePathname } from "next/navigation";
 import { 
   BarChart3, 
@@ -56,6 +59,7 @@ function NavItem({ icon, label, href, badge, isSubItem }: { icon: React.ReactNod
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { isPiP, pipWindow } = useDrafter();
 
   if (pathname === "/login") {
     return <>{children}</>;
@@ -174,6 +178,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Floating In-App Outreach Drafter Widget */}
+      <DrafterWidget />
+
+      {/* Picture-in-Picture External Window (Google Meet style) */}
+      {isPiP && pipWindow && createPortal(
+        <DrafterWidget embedded={true} />,
+        pipWindow.document.body
+      )}
     </div>
   );
 }
