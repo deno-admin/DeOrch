@@ -15,7 +15,10 @@ import {
   FileText,
   Sliders,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Code2,
+  Briefcase
 } from "lucide-react";
 
 interface DraftedMessages {
@@ -29,48 +32,55 @@ interface DraftedMessages {
 
 const PRESETS = [
   {
+    targetInput: "Nikunj, Founder & Product Lead at Asymmetric Labs",
+    specialization: "SaaS Product Design & Complex Workflows",
+    userPortfolio: "https://kumaraguru-dk.framer.website/",
+    tone: "Value-First & Professional",
+    customHook: "Strong interest in early-stage product ownership, B2B dashboards, and mobile-first UX.",
+  },
+  {
+    targetInput: "Careers Team at Predigle (SaaS & AI Product)",
+    specialization: "UX Engineer (UI/UX + Frontend React/Next.js Bridge)",
+    userPortfolio: "https://kumaraguru-dk.framer.website/",
+    tone: "Direct & Punchy",
+    customHook: "Experience simplifying complex operational workflows at Vorrei.io and responsive UI at Denovation.",
+  },
+  {
+    targetInput: "Hiring Manager at Aiva Technology (UI/UX + React Interface)",
+    specialization: "UX Engineer (UI/UX + Frontend React/Next.js Bridge)",
+    userPortfolio: "https://kumaraguru-dk.framer.website/",
+    tone: "Value-First & Professional",
+    customHook: "B.E. Computer Science background combining Figma UI/UX with React, Next.js, and Tailwind CSS.",
+  },
+  {
     targetInput: "Sarah Jenkins, Head of Product Design at Figma",
     specialization: "Design Systems & Component Libraries",
-    userPortfolio: "https://dribbble.com/designer-portfolio",
-    tone: "Value-First & Professional",
-    customHook: "Admire Figma's auto-layout updates and component variants workflow.",
-  },
-  {
-    targetInput: "Marcus Vance, Design Recruiting Manager at Stripe",
-    specialization: "SaaS & Complex Dashboards",
-    userPortfolio: "https://myportfolio.design",
-    tone: "Direct & Punchy",
-    customHook: "Built fintech dashboard interfaces that increased task speed by 40%.",
-  },
-  {
-    targetInput: "Elena Rostova, VP of Product & Experience at Linear",
-    specialization: "UI/UX & Product Design",
-    userPortfolio: "https://alexux.design",
+    userPortfolio: "https://kumaraguru-dk.framer.website/",
     tone: "Creative & Passionate",
-    customHook: "Focused on micro-interactions and dark mode UI design.",
+    customHook: "Passionate about component variants, auto layout, and developer handoff workflows.",
   },
 ];
 
 const TONE_OPTIONS = [
-  { label: "Value-First & Professional", desc: "Focuses on ROI & design impact" },
+  { label: "Value-First & Professional", desc: "Highlights SaaS workflow ROI & design impact" },
   { label: "Direct & Punchy", desc: "Short, clean, respects recipient's time" },
-  { label: "Creative & Passionate", desc: "Highlights product enthusiasm & visual craft" },
+  { label: "Creative & Passionate", desc: "Emphasizes product craft & visual execution" },
   { label: "Warm & Conversational", desc: "Friendly approach for peer networking" },
 ];
 
 const SPECIALIZATION_OPTIONS = [
-  "UI/UX & Product Design",
+  "UX Engineer (UI/UX + Frontend React/Next.js Bridge)",
+  "SaaS Product Design & Complex Workflows",
   "Design Systems & Component Libraries",
-  "Mobile App Design (iOS/Android)",
-  "SaaS & Complex Dashboards",
-  "Web & Brand UX Experience",
+  "Web & Brand UX Digital Experience",
+  "Mobile-First & Interactive UI Design",
 ];
 
 export default function DrafterPage() {
   const [targetInput, setTargetInput] = useState("");
-  const [userPortfolio, setUserPortfolio] = useState("");
+  const [userPortfolio, setUserPortfolio] = useState("https://kumaraguru-dk.framer.website/");
   const [tone, setTone] = useState("Value-First & Professional");
-  const [specialization, setSpecialization] = useState("UI/UX & Product Design");
+  const [specialization, setSpecialization] = useState("UX Engineer (UI/UX + Frontend React/Next.js Bridge)");
   const [customHook, setCustomHook] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -147,10 +157,44 @@ export default function DrafterPage() {
 
   return (
     <div className="min-h-full p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Profile Quick Card */}
+      <div className="bg-gradient-to-r from-indigo-900/90 via-slate-900 to-purple-900/90 text-white rounded-2xl p-4 sm:p-5 border border-indigo-500/20 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-lg text-white shadow-inner shrink-0">
+            K
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-bold text-base text-white">Kumaragurubaran K</h2>
+              <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-[10px] font-semibold text-indigo-300">
+                UX Engineer & Product Designer
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5 flex items-center gap-2">
+              <span>Denovation (UX Designer)</span>
+              <span>•</span>
+              <span>Ex-VorreiX (SaaS)</span>
+              <span>•</span>
+              <span className="text-indigo-300 font-medium">Figma & React/Next.js</span>
+            </p>
+          </div>
+        </div>
+
+        <a
+          href={userPortfolio}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-medium text-white transition-all self-start sm:self-auto"
+        >
+          <span>Portfolio Website</span>
+          <ExternalLink size={14} />
+        </a>
+      </div>
+
       {/* Quick Preset Fill Buttons */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-sm scrollbar-none">
         <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 shrink-0 flex items-center gap-1.5">
-          <Wand2 size={14} className="text-indigo-500" /> Quick Samples:
+          <Wand2 size={14} className="text-indigo-500" /> Target Presets:
         </span>
         {PRESETS.map((preset, idx) => (
           <button
@@ -171,9 +215,9 @@ export default function DrafterPage() {
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4">
             <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
               <Sliders size={18} className="text-indigo-500" />
-              LinkedIn Drafter
+              Outreach Parameters
             </h2>
-            <span className="text-xs text-neutral-400">UI/UX Opportunity Pitch</span>
+            <span className="text-xs text-neutral-400">Kumaragurubaran K Profile</span>
           </div>
 
           {error && (
@@ -187,28 +231,28 @@ export default function DrafterPage() {
             {/* Single Combined Target Field */}
             <div>
               <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Target Person, Position & Company *
+                Target Contact, Role & Company *
               </label>
               <div className="relative">
                 <User className="absolute left-3.5 top-3.5 w-4 h-4 text-neutral-400" />
                 <textarea
                   rows={2}
                   required
-                  placeholder="e.g. Sarah Jenkins, Head of Product Design at Figma"
+                  placeholder="e.g. Nikunj, Founder & Product Lead at Asymmetric Labs"
                   value={targetInput}
                   onChange={(e) => setTargetInput(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
                 />
               </div>
               <p className="text-[11px] text-neutral-400 mt-1">
-                Enter name, role, and company in a single line or pasted snippet.
+                Enter target person, role, and company name or paste candidate context.
               </p>
             </div>
 
             {/* Design Specialization */}
             <div>
               <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Your Design Specialization Focus
+                Outreach Positioning Focus
               </label>
               <select
                 value={specialization}
@@ -226,13 +270,13 @@ export default function DrafterPage() {
             {/* Portfolio Link */}
             <div>
               <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Your Portfolio URL (Optional)
+                Portfolio Website URL
               </label>
               <div className="relative">
                 <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                 <input
                   type="url"
-                  placeholder="https://yourportfolio.design"
+                  placeholder="https://kumaraguru-dk.framer.website/"
                   value={userPortfolio}
                   onChange={(e) => setUserPortfolio(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -269,11 +313,11 @@ export default function DrafterPage() {
             {/* Custom Hook / Personal Note */}
             <div>
               <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                Custom Hook or Product Observation (Optional)
+                Company Observation or Custom Hook (Optional)
               </label>
               <textarea
                 rows={2}
-                placeholder="e.g. Loved your recent team post on redesigning the mobile checkout flow..."
+                placeholder="e.g. Noticed your recent product update simplifying user onboarding..."
                 value={customHook}
                 onChange={(e) => setCustomHook(e.target.value)}
                 className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
@@ -294,7 +338,7 @@ export default function DrafterPage() {
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
-                  <span>Generate UI/UX Outreach Drafts</span>
+                  <span>Draft Outreach for Kumaragurubaran</span>
                 </>
               )}
             </button>
@@ -310,21 +354,21 @@ export default function DrafterPage() {
               </div>
               <div className="max-w-md space-y-2">
                 <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                  Ready to Draft Your LinkedIn Pitch
+                  LinkedIn Outreach Drafter Ready
                 </h3>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Enter target contact details on the left to generate tailored connection requests and InMail drafts.
+                  Enter target prospect details on the left or select a target preset to generate custom-tailored outreach drafts for Kumaragurubaran K.
                 </p>
               </div>
               <div className="pt-2 flex flex-wrap justify-center gap-4 text-xs text-neutral-500">
                 <span className="flex items-center gap-1">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> LinkedIn Character Limits Compliant
+                  <CheckCircle2 size={14} className="text-emerald-500" /> Grounded in Master Profile
                 </span>
                 <span className="flex items-center gap-1">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> Value-First Design Framing
+                  <CheckCircle2 size={14} className="text-emerald-500" /> Denovation & VorreiX SaaS Proof
                 </span>
                 <span className="flex items-center gap-1">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> Instant Copy & Edit
+                  <CheckCircle2 size={14} className="text-emerald-500" /> UI/UX + React Bridge
                 </span>
               </div>
             </div>
@@ -338,10 +382,10 @@ export default function DrafterPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">
-                  Crafting LinkedIn UI/UX Outreach Message...
+                  Crafting LinkedIn Outreach for Kumaragurubaran K...
                 </h3>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  NVIDIA AI is analyzing prospect context...
+                  NVIDIA AI is analyzing prospect context and matching with Master Profile experience...
                 </p>
               </div>
             </div>
@@ -374,7 +418,7 @@ export default function DrafterPage() {
                           : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900"
                       }`}
                     >
-                      Connection Note (&lt;300 chars)
+                      Connection Note (&lt;280 chars)
                     </button>
                     <button
                       type="button"
@@ -437,11 +481,11 @@ export default function DrafterPage() {
                       <span>{editedText.trim().split(/\s+/).filter(Boolean).length} words</span>
                       {activeTab === "connection" && (
                         <span className={`px-1.5 py-0.5 rounded font-bold ${
-                          editedText.length <= 300 
+                          editedText.length <= 280 
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                             : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                         }`}>
-                          {editedText.length}/300
+                          {editedText.length}/280
                         </span>
                       )}
                     </span>
@@ -481,7 +525,7 @@ export default function DrafterPage() {
                 {/* Message Bubble Container */}
                 <div className="bg-neutral-950 p-4 sm:p-5 rounded-2xl border border-neutral-800/80 space-y-3">
                   <div className="flex items-center justify-between text-[11px] text-neutral-500">
-                    <span>Sent via LinkedIn Direct Message</span>
+                    <span>Sent by Kumaragurubaran K</span>
                     <span>Just now</span>
                   </div>
                   <div className="text-xs sm:text-sm text-neutral-200 whitespace-pre-wrap leading-relaxed">
@@ -495,7 +539,7 @@ export default function DrafterPage() {
                 {/* Core Hooks Used */}
                 <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-sm space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                    <Zap size={14} /> Key Value Hooks Included
+                    <Zap size={14} /> Profile Hooks Highlighted
                   </h4>
                   <ul className="space-y-2 text-xs text-neutral-600 dark:text-neutral-400">
                     {result.valueHighlights?.map((point, idx) => (
@@ -510,7 +554,7 @@ export default function DrafterPage() {
                 {/* Sending Tips */}
                 <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-sm space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                    <Lightbulb size={14} /> Tips for Maximum Reply
+                    <Lightbulb size={14} /> Recommended Action Steps
                   </h4>
                   <ul className="space-y-2 text-xs text-neutral-600 dark:text-neutral-400">
                     {result.tipsForSuccess?.map((tip, idx) => (

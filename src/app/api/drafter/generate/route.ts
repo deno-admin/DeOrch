@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateStructured } from "@/lib/ai/provider";
 
 export interface DrafterRequest {
-  targetInput?: string; // Single combined input field e.g. "Sarah Jenkins, Head of Product Design at Figma"
+  targetInput?: string; // e.g. "Nikunj, Founder at Asymmetric Labs" or "Sarah Jenkins, Head of Product Design at Figma"
   personName?: string;
   companyName?: string;
   position?: string;
@@ -30,9 +30,9 @@ export async function POST(req: Request) {
       personName = "",
       companyName = "",
       position = "",
-      userPortfolio = "",
+      userPortfolio = "https://kumaraguru-dk.framer.website/",
       tone = "Value-First & Professional",
-      specialization = "UI/UX & Product Design",
+      specialization = "UX Engineer & Product Design (UI/UX + Frontend Bridge)",
       customHook = "",
     } = body;
 
@@ -45,34 +45,46 @@ export async function POST(req: Request) {
       );
     }
 
-    const systemPrompt = `You are an elite Career & Design Outreach Strategist specializing in helping UI/UX Designers land interviews and opportunities at top companies.
-Your goal is to craft compelling, personalized LinkedIn outreach messages seeking a UI/UX Designer opportunity at the target company based on the provided prospect input.
-You must use a high-converting, non-spammy approach that focuses on value, design craft, product intuition, and mutual benefit.
+    const portfolioUrl = userPortfolio.trim() || "https://kumaraguru-dk.framer.website/";
 
-RULES & GUIDELINES:
-1. Tone: ${tone}
-2. Target Prospect Details: ${rawTargetContext}
-3. Applicant Specialization: ${specialization}
-4. Applicant Portfolio: ${userPortfolio || "Not specified (use placeholder like [Portfolio Link] if relevant)"}
-5. Custom Note/Hook: ${customHook || "None provided"}
+    const systemPrompt = `You are an elite Career & Design Outreach Strategist drafting tailored LinkedIn outreach messages for **Kumaragurubaran K**, a User Experience Designer and UX Engineer seeking UI/UX, Product Designer, or UX Engineer opportunities at target companies.
+
+APPLICANT MASTER PROFILE (KUMARAGURUBARAN K):
+- Full Name: Kumaragurubaran K
+- Core Positioning: UX Engineer & Product Designer who bridges UI/UX design and frontend development (Figma, Framer, React, Next.js, Tailwind CSS, HTML/CSS/JS).
+- Current Role: User Experience Designer at Denovation (Sep 2025 - Present) leading UX/UI design for digital products & brands (Denovation, Shifa & Smiles, Kalappai, Chameo, FaireLux).
+- Previous Experience: UI/UX Designer Intern at VorreiX (Jun 2025 - Sep 2025) working on Vorrei.io SaaS product — simplifying complex operational workflows, information hierarchy, dashboards, user flows, and reusable component systems.
+- Education: B.E. Computer Science and Engineering (2021-2025).
+- Portfolio URL: ${portfolioUrl}
+- Contact Phone: +91 8925161453
+- Key Strength: "Turning complex workflows into simple, development-ready digital experiences. Bridges the gap between design craft and developer handoff."
+
+STRICT RULES & CONSTRAINTS:
+1. NEVER mention "Kovan Labs" under any circumstances.
+2. Ensure the messages sound authentic, human, concise, and non-spammy.
+3. Automatically reference or seamlessly integrate Kumaragurubaran's real experience (Denovation / VorreiX SaaS / design-development bridge) when relevant to the prospect's company.
+4. Always include his real portfolio link (${portfolioUrl}) naturally in the message.
+5. Adhere to the selected tone: ${tone}
+6. Selected Specialization Focus: ${specialization}
+7. Custom Hook/Note: ${customHook || "None provided"}
 
 OUTPUT REQUIREMENTS (STRICT JSON):
 Respond ONLY with a JSON object containing the following exact keys:
-- "subjectLine": Catchy, short InMail subject line (5-8 words max, non-gimmicky).
-- "directMessage": Complete LinkedIn DM / InMail (approx. 100-150 words). Address the person naturally based on the input details, mention their role/company context, articulate why the UI/UX designer admires their work or product UX, highlight key skills in ${specialization}, provide a soft call-to-action (e.g., quick 10-min portfolio review or casual design chat), and include proper portfolio link placeholders.
-- "connectionRequest": Short, impact-driven LinkedIn connection request note (STRICTLY under 300 characters including spaces!).
+- "subjectLine": Catchy, non-gimmicky InMail subject line (5-8 words max, e.g. "UI/UX Designer & UX Engineer - Application & Portfolio").
+- "directMessage": Complete, polished LinkedIn DM / InMail (approx. 100-140 words). Written from Kumaragurubaran K's perspective to the target prospect ("${rawTargetContext}"). Naturally references his current UX work at Denovation, SaaS workflow experience at VorreiX, development-ready UI/UX background, includes his portfolio link (${portfolioUrl}), and ends with a friendly low-friction CTA (e.g. quick 10-min portfolio review or casual chat).
+- "connectionRequest": Short, high-impact LinkedIn connection request note (STRICTLY under 280 characters including spaces and link!).
 - "followUpMessage": Polished follow-up message to send 3-5 days later if they haven't replied (50-80 words).
-- "valueHighlights": Array of 3 bullet points summarizing the core value propositions emphasized in these drafts.
-- "tipsForSuccess": Array of 2 actionable tips for how to send this specific message on LinkedIn to maximize reply rates.`;
+- "valueHighlights": Array of 3 bullet points summarizing the core value hooks used in these drafts for Kumaragurubaran.
+- "tipsForSuccess": Array of 2 actionable tips for sending this specific message on LinkedIn to maximize reply rates.`;
 
-    const userPrompt = `Draft LinkedIn outreach messages seeking a UI/UX Designer opportunity for the following prospect:
-Target Details: "${rawTargetContext}"
-Specialization: ${specialization}
-Portfolio: ${userPortfolio || "Not provided"}
+    const userPrompt = `Draft personalized LinkedIn outreach messages for Kumaragurubaran K seeking a UI/UX / Product Design / UX Engineer opportunity:
+Target Prospect & Role: "${rawTargetContext}"
+Specialization Focus: ${specialization}
+Portfolio: ${portfolioUrl}
 Tone: ${tone}
-${customHook ? `Custom Hook: ${customHook}` : ""}
+${customHook ? `Custom Hook / Observation: ${customHook}` : ""}
 
-Ensure the message sounds human, professional, and tailored specifically for a UI/UX Designer seeking an opportunity.`;
+Ensure the draft reflects Kumaragurubaran K's master summary background, SaaS workflow experience, and development-ready design skills.`;
 
     const result = await generateStructured<DraftedMessagesResponse>({
       task: "draft_linkedin_uiux_outreach",
