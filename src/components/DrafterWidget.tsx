@@ -19,7 +19,10 @@ import {
   Maximize,
   Sliders,
   Send,
-  MessageSquare
+  MessageSquare,
+  Users,
+  Search,
+  CheckCircle2
 } from "lucide-react";
 
 interface DrafterWidgetProps {
@@ -71,6 +74,8 @@ const DRAFT_TYPE_OPTIONS = [
 
 export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) {
   const {
+    aiMode,
+    setAiMode,
     targetInput,
     setTargetInput,
     userPortfolio,
@@ -83,10 +88,15 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     setDraftType,
     customHook,
     setCustomHook,
+    parsedCandidates,
+    selectedCandidateId,
+    selectCandidate,
+    parseScreenContent,
     loading,
     error,
     result,
     handleGenerate,
+    copyToClipboard,
     isFloating,
     setIsFloating,
     isPiP,
@@ -97,6 +107,9 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
   } = useDrafter();
 
   const [widgetTab, setWidgetTab] = useState<"edit" | "result">("edit");
+  const [inputMode, setInputMode] = useState<"single" | "scraper">("single");
+  const [screenText, setScreenText] = useState("");
+
   const [activeResultTab, setActiveResultTab] = useState<"dm" | "connection" | "followup">("dm");
   const [copied, setCopied] = useState(false);
   const [editedText, setEditedText] = useState("");
@@ -111,8 +124,7 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (embedded) return; // Disable dragging in PiP or embedded views
     if (e.button !== 0) return; // Only left-click drag
-    
-    // Ignore drags on interactive elements
+
     const target = e.target as HTMLElement;
     if (target.closest("button") || target.closest("input") || target.closest("textarea") || target.closest("select")) {
       return;
@@ -156,7 +168,7 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     else if (activeResultTab === "followup") setEditedText(result.followUpMessage);
   }, [result, activeResultTab]);
 
-  // Auto switch to results tab when AI finishes generating
+  // Auto switch to results tab when generation finishes
   useEffect(() => {
     if (result && !loading) {
       setWidgetTab("result");
@@ -170,16 +182,23 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     }
   }, [result, loading, draftType]);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!editedText) return;
-    navigator.clipboard.writeText(editedText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const success = await copyToClipboard(editedText);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleGenerate();
+  };
+
+  const handleParseScreenText = () => {
+    if (!screenText.trim()) return;
+    parseScreenContent(screenText);
   };
 
   // If floating is active and we are NOT in PiP, render floating panel
@@ -210,15 +229,14 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
       <div className="flex items-center gap-2">
         <Sparkles size={16} className="text-amber-400 animate-pulse" />
         <span className="text-xs font-bold tracking-wide">Outreach Drafter Widget</span>
-        {isMinimized && (
-          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-[9px] text-emerald-400 font-semibold border border-emerald-500/30">
-            Active
+        {aiMode === "off" && (
+          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-[9px] text-amber-300 font-semibold border border-amber-500/30">
+            Template (0ms)
           </span>
         )}
       </div>
 
       <div className="flex items-center gap-1.5">
-        {/* Toggle Minimize (only if floating) */}
         {!embedded && (
           <button
             type="button"
@@ -230,7 +248,6 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
           </button>
         )}
 
-        {/* Toggle PiP (only if supported and not in PiP already) */}
         {typeof window !== "undefined" && "documentPictureInPicture" in window && !isPiP && (
           <button
             type="button"
@@ -242,7 +259,6 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
           </button>
         )}
 
-        {/* Restore to main view button (only if floating or in PiP) */}
         {(isFloating || isPiP) && (
           <button
             type="button"
@@ -262,7 +278,6 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     </div>
   );
 
-  // If Minimized and floating, show compact pill
   if (isMinimized && !embedded && !isPiP) {
     return (
       <div
@@ -294,18 +309,50 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
   return (
     <div
       style={widgetStyles}
-      className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all max-h-[620px] ${
+      className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all max-h-[640px] ${
         embedded ? "w-full h-full border-none shadow-none" : ""
       }`}
     >
       {renderHeader()}
 
-      <div className="p-4 overflow-y-auto space-y-4 flex-1">
+      <div className="p-4 overflow-y-auto space-y-3.5 flex-1">
         {error && (
           <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs">
             {error}
           </div>
         )}
+
+        {/* AI ON / OFF Mode Toggle Switch */}
+        <div className="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800/80 p-2 rounded-xl border border-neutral-200 dark:border-neutral-700/60 text-xs">
+          <div className="flex items-center gap-1.5 font-medium">
+            <Zap size={14} className={aiMode === "on" ? "text-amber-400 animate-pulse" : "text-neutral-400"} />
+            <span className="text-[11px]">AI Generation Mode</span>
+          </div>
+          <div className="flex items-center gap-1 bg-white dark:bg-neutral-900 p-0.5 rounded-lg border border-neutral-200 dark:border-neutral-700">
+            <button
+              type="button"
+              onClick={() => setAiMode("off")}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                aiMode === "off"
+                  ? "bg-amber-500 text-white shadow-sm"
+                  : "text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+              }`}
+            >
+              OFF (Fast)
+            </button>
+            <button
+              type="button"
+              onClick={() => setAiMode("on")}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                aiMode === "on"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+              }`}
+            >
+              ON (LLM)
+            </button>
+          </div>
+        </div>
 
         {/* Tab selection inside widget if result exists */}
         {result && (
@@ -336,165 +383,217 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
         )}
 
         {widgetTab === "edit" ? (
-          <form onSubmit={handleFormSubmit} className="space-y-3.5">
-            {/* Quick Presets */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                Quick Presets:
-              </span>
-              <div className="flex gap-1.5 overflow-x-auto pb-1 select-none scrollbar-none">
-                {PRESETS.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setTargetInput(preset.targetInput);
-                      setSpecialization(preset.specialization);
-                      setTone(preset.tone);
-                      setDraftType(preset.draftType);
-                      setCustomHook(preset.customHook);
-                    }}
-                    className="shrink-0 px-2 py-1 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-indigo-500 rounded-lg text-[10px] transition-colors"
-                  >
-                    {preset.targetInput.split(",")[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Target Field */}
-            <div>
-              <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
-                Target Contact / Company *
-              </label>
-              <div className="relative">
-                <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-neutral-400" />
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="e.g. Nikunj, Founder at Asymmetric Labs"
-                  value={targetInput}
-                  onChange={(e) => setTargetInput(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Draft Type */}
-            <div>
-              <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
-                Preferred Format
-              </label>
-              <div className="grid grid-cols-3 gap-1">
-                {DRAFT_TYPE_OPTIONS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setDraftType(item.id)}
-                    className={`py-1.5 px-1 rounded-lg border text-center transition-all text-[11px] font-medium capitalize ${
-                      draftType === item.id
-                        ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-semibold"
-                        : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-600 dark:text-neutral-400"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Specialization */}
-            <div>
-              <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
-                Position Specialization
-              </label>
-              <select
-                value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
-                className="w-full px-2 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+          <div className="space-y-3">
+            {/* Input Mode Selector: Single Target vs Screen Reader Scraper */}
+            <div className="flex bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded-lg border border-neutral-200 dark:border-neutral-700/60">
+              <button
+                type="button"
+                onClick={() => setInputMode("single")}
+                className={`flex-1 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  inputMode === "single"
+                    ? "bg-white dark:bg-neutral-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-neutral-500"
+                }`}
               >
-                {SPECIALIZATION_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
+                <User size={12} />
+                <span>Single Target</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode("scraper")}
+                className={`flex-1 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  inputMode === "scraper"
+                    ? "bg-white dark:bg-neutral-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-neutral-500"
+                }`}
+              >
+                <Users size={12} />
+                <span>Screen Reader (Max 10)</span>
+              </button>
             </div>
 
-            {/* Tone Selector */}
-            <div>
-              <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
-                Tone
-              </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {TONE_OPTIONS.map((item) => (
+            {inputMode === "scraper" ? (
+              <div className="space-y-2.5">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                    Paste LinkedIn Search Page / Screen Text
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Paste copied text from LinkedIn search results or candidate cards here..."
+                    value={screenText}
+                    onChange={(e) => setScreenText(e.target.value)}
+                    className="w-full p-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 resize-none font-mono text-[11px]"
+                  />
                   <button
-                    key={item.label}
                     type="button"
-                    onClick={() => setTone(item.label)}
-                    className={`p-1.5 rounded-lg border text-left transition-all ${
-                      tone === item.label
-                        ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 text-indigo-700 dark:text-indigo-300"
-                        : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-600 dark:text-neutral-400"
-                    }`}
+                    onClick={handleParseScreenText}
+                    className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
-                    <div className="text-[10px] font-bold">{item.label}</div>
-                    <div className="text-[8px] text-neutral-400 mt-0.5 truncate">{item.desc}</div>
+                    <Search size={13} />
+                    <span>Parse Candidates (Up to 10)</span>
                   </button>
-                ))}
+                </div>
+
+                {parsedCandidates.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block flex items-center justify-between">
+                      <span>Parsed Candidates ({parsedCandidates.length}/10):</span>
+                      <span className="text-[9px] text-indigo-400">Click candidate to draft</span>
+                    </span>
+                    <div className="space-y-1 max-h-48 overflow-y-auto pr-1 select-none">
+                      {parsedCandidates.map((cand) => (
+                        <button
+                          key={cand.id}
+                          type="button"
+                          onClick={() => selectCandidate(cand)}
+                          className={`w-full p-2 rounded-lg border text-left transition-all flex items-start justify-between ${
+                            selectedCandidateId === cand.id
+                              ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-900 dark:text-indigo-200"
+                              : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300"
+                          }`}
+                        >
+                          <div className="space-y-0.5 truncate">
+                            <div className="text-xs font-bold truncate">{cand.name}</div>
+                            <div className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate">
+                              {cand.role} @ {cand.company}
+                            </div>
+                          </div>
+                          {selectedCandidateId === cand.id && (
+                            <CheckCircle2 size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <form onSubmit={handleFormSubmit} className="space-y-3">
+                {/* Quick Presets */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                    Quick Presets:
+                  </span>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 select-none scrollbar-none">
+                    {PRESETS.map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setTargetInput(preset.targetInput);
+                          setSpecialization(preset.specialization);
+                          setTone(preset.tone);
+                          setDraftType(preset.draftType);
+                          setCustomHook(preset.customHook);
+                        }}
+                        className="shrink-0 px-2 py-1 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-indigo-500 rounded-lg text-[10px] transition-colors"
+                      >
+                        {preset.targetInput.split(",")[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Portfolio Link */}
-            <div>
-              <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
-                Portfolio Website
-              </label>
-              <div className="relative">
-                <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
-                <input
-                  type="url"
-                  placeholder="https://kumaraguru-dk.framer.website/"
-                  value={userPortfolio}
-                  onChange={(e) => setUserPortfolio(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
+                {/* Target Field */}
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
+                    Target Contact / Company *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-neutral-400" />
+                    <textarea
+                      rows={2}
+                      required
+                      placeholder="e.g. Karan Mukkarji, UI/UX Designer at Xtech Code"
+                      value={targetInput}
+                      onChange={(e) => setTargetInput(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                    />
+                  </div>
+                </div>
 
-            {/* Custom Hook */}
-            <div>
-              <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
-                Custom Hook / Observation (Optional)
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Observation or personalization note..."
-                value={customHook}
-                onChange={(e) => setCustomHook(e.target.value)}
-                className="w-full px-3 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
-              />
-            </div>
+                {/* Draft Type */}
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
+                    Preferred Format
+                  </label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {DRAFT_TYPE_OPTIONS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setDraftType(item.id)}
+                        className={`py-1.5 px-1 rounded-lg border text-center transition-all text-[11px] font-medium capitalize ${
+                          draftType === item.id
+                            ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-semibold"
+                            : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-600 dark:text-neutral-400"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Generate Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold shadow-md flex items-center justify-center gap-1.5 transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Drafting via AI...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
-                  <span>Generate Outreach ({draftType})</span>
-                </>
-              )}
-            </button>
-          </form>
+                {/* Specialization */}
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
+                    Position Specialization
+                  </label>
+                  <select
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                  >
+                    {SPECIALIZATION_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Portfolio Link */}
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1">
+                    Portfolio Website
+                  </label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
+                    <input
+                      type="url"
+                      placeholder="https://kumaraguru-dk.framer.website/"
+                      value={userPortfolio}
+                      onChange={(e) => setUserPortfolio(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Generate Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold shadow-md flex items-center justify-center gap-1.5 transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                      <span>{aiMode === "off" ? "Formatting..." : "Drafting via AI..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
+                      <span>
+                        {aiMode === "off" ? "Generate Template (0ms)" : `Generate Outreach (${draftType})`}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
         ) : (
           <div className="space-y-4">
             {/* Inner Subtabs for Draft Formats */}
@@ -620,3 +719,4 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     </div>
   );
 }
+

@@ -20,7 +20,8 @@ import {
   ExternalLink,
   Layers,
   Tv,
-  Send
+  Users,
+  Search
 } from "lucide-react";
 
 const PRESETS = [
@@ -81,6 +82,8 @@ const DRAFT_TYPE_OPTIONS = [
 
 export default function DrafterPage() {
   const {
+    aiMode,
+    setAiMode,
     targetInput,
     setTargetInput,
     userPortfolio,
@@ -93,16 +96,24 @@ export default function DrafterPage() {
     setDraftType,
     customHook,
     setCustomHook,
+    parsedCandidates,
+    selectedCandidateId,
+    selectCandidate,
+    parseScreenContent,
     loading,
     error,
     result,
     handleGenerate,
+    copyToClipboard,
     isFloating,
     setIsFloating,
     isPiP,
     openPiP,
     closePiP,
   } = useDrafter();
+
+  const [inputMode, setInputMode] = useState<"single" | "scraper">("single");
+  const [screenText, setScreenText] = useState("");
 
   const [activeTab, setActiveTab] = useState<"dm" | "connection" | "followup">("dm");
   const [editedText, setEditedText] = useState("");
@@ -146,16 +157,23 @@ export default function DrafterPage() {
     else if (tab === "followup") setEditedText(result.followUpMessage);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!editedText) return;
-    navigator.clipboard.writeText(editedText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    const success = await copyToClipboard(editedText);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleGenerate();
+  };
+
+  const handleParseScreenText = () => {
+    if (!screenText.trim()) return;
+    parseScreenContent(screenText);
   };
 
   return (
@@ -277,7 +295,7 @@ export default function DrafterPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm space-y-6">
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4">
                 <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
                   <Sliders size={18} className="text-indigo-500" />
@@ -305,6 +323,66 @@ export default function DrafterPage() {
                 </div>
               </div>
 
+              {/* AI ON / OFF Toggle Banner */}
+              <div className="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800/80 p-3 rounded-2xl border border-neutral-200 dark:border-neutral-700/60 text-xs">
+                <div className="flex items-center gap-2 font-semibold text-neutral-800 dark:text-neutral-200">
+                  <Zap size={16} className={aiMode === "on" ? "text-amber-400 animate-pulse" : "text-neutral-400"} />
+                  <span>AI Generation Mode</span>
+                </div>
+                <div className="flex items-center gap-1 bg-white dark:bg-neutral-900 p-1 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                  <button
+                    type="button"
+                    onClick={() => setAiMode("off")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      aiMode === "off"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    }`}
+                  >
+                    OFF (Fast 0ms)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiMode("on")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      aiMode === "on"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    }`}
+                  >
+                    ON (AI LLM)
+                  </button>
+                </div>
+              </div>
+
+              {/* Input Mode Selector: Single Target vs Screen Reader Scraper */}
+              <div className="flex bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl border border-neutral-200 dark:border-neutral-700/60">
+                <button
+                  type="button"
+                  onClick={() => setInputMode("single")}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                    inputMode === "single"
+                      ? "bg-white dark:bg-neutral-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-neutral-500"
+                  }`}
+                >
+                  <User size={14} />
+                  <span>Single Target</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("scraper")}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                    inputMode === "scraper"
+                      ? "bg-white dark:bg-neutral-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-neutral-500"
+                  }`}
+                >
+                  <Users size={14} />
+                  <span>Screen Reader (Max 10)</span>
+                </button>
+              </div>
+
               {error && (
                 <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-sm flex items-start gap-2.5">
                   <AlertCircle size={18} className="shrink-0 mt-0.5" />
@@ -312,146 +390,206 @@ export default function DrafterPage() {
                 </div>
               )}
 
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                {/* Single Combined Target Field */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Target Contact, Role & Company *
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-3.5 w-4 h-4 text-neutral-400" />
+              {inputMode === "scraper" ? (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                      Paste LinkedIn Search Page / Screen Text
+                    </label>
+                    <textarea
+                      rows={5}
+                      placeholder="Paste copied text from LinkedIn search results or candidate cards here..."
+                      value={screenText}
+                      onChange={(e) => setScreenText(e.target.value)}
+                      className="w-full p-3 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleParseScreenText}
+                      className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                    >
+                      <Search size={14} />
+                      <span>Parse Candidates (Up to 10)</span>
+                    </button>
+                  </div>
+
+                  {parsedCandidates.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider block flex items-center justify-between">
+                        <span>Parsed Candidates ({parsedCandidates.length}/10):</span>
+                        <span className="text-[11px] text-indigo-400">Click to select & generate</span>
+                      </span>
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 select-none">
+                        {parsedCandidates.map((cand) => (
+                          <button
+                            key={cand.id}
+                            type="button"
+                            onClick={() => selectCandidate(cand)}
+                            className={`w-full p-3 rounded-xl border text-left transition-all flex items-start justify-between ${
+                              selectedCandidateId === cand.id
+                                ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-medium"
+                                : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300"
+                            }`}
+                          >
+                            <div className="space-y-0.5 truncate">
+                              <div className="text-xs font-bold truncate">{cand.name}</div>
+                              <div className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                                {cand.role} @ {cand.company}
+                              </div>
+                            </div>
+                            {selectedCandidateId === cand.id && (
+                              <CheckCircle2 size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  {/* Single Combined Target Field */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
+                      Target Contact, Role & Company *
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-3.5 w-4 h-4 text-neutral-400" />
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="e.g. Karan Mukkarji, UI/UX Designer at Xtech Code"
+                        value={targetInput}
+                        onChange={(e) => setTargetInput(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mt-1">
+                      Enter target person, role, and company name or paste candidate context.
+                    </p>
+                  </div>
+
+                  {/* Draft Type Selector */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>Draft Message Type (Default: Initial)</span>
+                      <span className="text-[10px] text-indigo-500 lowercase font-mono">default initial</span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {DRAFT_TYPE_OPTIONS.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setDraftType(item.id)}
+                          className={`py-2 px-2.5 rounded-xl border text-center transition-all ${
+                            draftType === item.id
+                              ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-semibold shadow-sm"
+                              : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300"
+                          }`}
+                        >
+                          <div className="text-xs font-medium capitalize">{item.id}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Outreach Positioning Focus Dropdown */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
+                      Outreach Positioning Focus
+                    </label>
+                    <select
+                      value={specialization}
+                      onChange={(e) => setSpecialization(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                    >
+                      {SPECIALIZATION_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tone Selector */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
+                      Outreach Tone & Angle
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {TONE_OPTIONS.map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => setTone(item.label)}
+                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                            tone === item.label
+                              ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-medium"
+                              : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300"
+                          }`}
+                        >
+                          <div className="text-xs font-semibold">{item.label}</div>
+                          <div className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-1">
+                            {item.desc}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Portfolio Link */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
+                      Portfolio Website URL
+                    </label>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                      <input
+                        type="url"
+                        placeholder="https://kumaraguru-dk.framer.website/"
+                        value={userPortfolio}
+                        onChange={(e) => setUserPortfolio(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Custom Hook / Personal Note */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
+                      Company Observation or Custom Hook (Optional)
+                    </label>
                     <textarea
                       rows={2}
-                      required
-                      placeholder="e.g. Nikunj, Founder & Product Lead at Asymmetric Labs"
-                      value={targetInput}
-                      onChange={(e) => setTargetInput(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                      placeholder="e.g. Impressed by your focus on simplifying complex B2B operational workflows..."
+                      value={customHook}
+                      onChange={(e) => setCustomHook(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
                     />
                   </div>
-                  <p className="text-[11px] text-neutral-400 mt-1">
-                    Enter target person, role, and company name or paste candidate context.
-                  </p>
-                </div>
 
-                {/* Draft Type Selector */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                    <span>Draft Message Type (Default: Initial)</span>
-                    <span className="text-[10px] text-indigo-500 lowercase font-mono">default initial</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {DRAFT_TYPE_OPTIONS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setDraftType(item.id)}
-                        className={`py-2 px-2.5 rounded-xl border text-center transition-all ${
-                          draftType === item.id
-                            ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-semibold shadow-sm"
-                            : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300"
-                        }`}
-                      >
-                        <div className="text-xs font-medium capitalize">{item.id}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Outreach Positioning Focus Dropdown */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Outreach Positioning Focus
-                  </label>
-                  <select
-                    value={specialization}
-                    onChange={(e) => setSpecialization(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
                   >
-                    {SPECIALIZATION_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Tone Selector */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Outreach Tone & Angle
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {TONE_OPTIONS.map((item) => (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={() => setTone(item.label)}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          tone === item.label
-                            ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-medium"
-                            : "bg-neutral-50 dark:bg-neutral-800/40 border-neutral-200 dark:border-neutral-700/60 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300"
-                        }`}
-                      >
-                        <div className="text-xs font-semibold">{item.label}</div>
-                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-1">
-                          {item.desc}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Portfolio Link */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Portfolio Website URL
-                  </label>
-                  <div className="relative">
-                    <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                    <input
-                      type="url"
-                      placeholder="https://kumaraguru-dk.framer.website/"
-                      value={userPortfolio}
-                      onChange={(e) => setUserPortfolio(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Custom Hook / Personal Note */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                    Company Observation or Custom Hook (Optional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. Impressed by your focus on simplifying complex B2B operational workflows..."
-                    value={customHook}
-                    onChange={(e) => setCustomHook(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin text-white" />
-                      <span>Drafting fast via NVIDIA AI...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
-                      <span>Generate Outreach ({draftType})</span>
-                    </>
-                  )}
-                </button>
-              </form>
+                    {loading ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                        <span>{aiMode === "off" ? "Formatting..." : "Drafting fast via NVIDIA AI..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
+                        <span>
+                          {aiMode === "off" ? "Generate Template (0ms)" : `Generate Outreach (${draftType})`}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           )}
         </div>
@@ -479,7 +617,7 @@ export default function DrafterPage() {
                   <CheckCircle2 size={14} className="text-emerald-500" /> Denovation & Vorreix Proof
                 </span>
                 <span className="flex items-center gap-1">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> Ultra-Fast Generation
+                  <CheckCircle2 size={14} className="text-emerald-500" /> Fast Execution
                 </span>
               </div>
             </div>
@@ -493,10 +631,10 @@ export default function DrafterPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">
-                  Drafting {draftType === "initial" ? "Initial Application" : draftType === "connection" ? "Connection Note" : "Follow-Up Message"}...
+                  {aiMode === "off" ? "Formatting Template..." : `Drafting ${draftType === "initial" ? "Initial Application" : draftType === "connection" ? "Connection Note" : "Follow-Up Message"}...`}
                 </h3>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  NVIDIA AI is executing fast generation...
+                  {aiMode === "off" ? "Populating template fields..." : "NVIDIA AI is executing fast generation..."}
                 </p>
               </div>
             </div>
@@ -684,3 +822,4 @@ export default function DrafterPage() {
     </div>
   );
 }
+
