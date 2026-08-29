@@ -34,6 +34,8 @@ interface DrafterContextType {
   selectedCandidateId: string | null;
   selectCandidate: (candidate: ParsedCandidate) => void;
   parseScreenContent: (rawText: string) => ParsedCandidate[];
+  parseScreenContentWithAI: (rawText: string) => Promise<ParsedCandidate[]>;
+  parsingLoading: boolean;
 
   loading: boolean;
   error: string | null;
@@ -69,6 +71,7 @@ export function DrafterProvider({ children }: { children: React.ReactNode }) {
 
   const [parsedCandidates, setParsedCandidates] = useState<ParsedCandidate[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [parsingLoading, setParsingLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,27 +98,7 @@ export function DrafterProvider({ children }: { children: React.ReactNode }) {
     };
   }, [pipWindow]);
 
-  const selectCandidate = (candidate: ParsedCandidate) => {
-    setSelectedCandidateId(candidate.id);
-    setTargetInput(candidate.formattedTarget);
-    if (aiMode === "off") {
-      generateTemplateDraft(candidate.formattedTarget);
-    }
-  };
-
-  const parseScreenContent = (rawText: string) => {
-    const list = parseCandidatesFromText(rawText);
-    setParsedCandidates(list);
-    if (list.length > 0) {
-      selectCandidate(list[0]);
-    }
-    return list;
-  };
-
-  const generateTemplateDraft = (inputOverride?: string) => {
-    const inputToUse = inputOverride || targetInput;
-    const parsed = parseSingleTargetInput(inputToUse);
-
+  const generateTemplateDraft = (parsed: { name: string; role: string; company: string }) => {
     const portfolioUrl = userPortfolio.trim() || "https://kumaraguru-dk.framer.website/";
     const phone = "+91 8925161453";
 
@@ -147,9 +130,9 @@ Kumaragurubaran`;
       connectionRequest,
       followUpMessage,
       valueHighlights: [
-        `Template Mode (AI OFF): Instant 0ms response`,
         `Target Parsed: ${parsed.name} (${parsed.role} @ ${parsed.company})`,
         `Factual Integrity: Includes Denovation & Vorreix proof points`,
+        `No AI Touch: Deterministic human output template`,
       ],
       tipsForSuccess: [
         `Review name and company replacements before sending`,
@@ -159,6 +142,58 @@ Kumaragurubaran`;
 
     setResult(draftedData);
     setLoading(false);
+  };
+
+  const selectCandidate = (candidate: ParsedCandidate) => {
+    setSelectedCandidateId(candidate.id);
+    setTargetInput(candidate.formattedTarget);
+    if (aiMode === "off") {
+      generateTemplateDraft({
+        name: candidate.name,
+        role: candidate.role,
+        company: candidate.company,
+      });
+    }
+  };
+
+  const parseScreenContent = (rawText: string) => {
+    const list = parseCandidatesFromText(rawText);
+    setParsedCandidates(list);
+    if (list.length > 0) {
+      selectCandidate(list[0]);
+    }
+    return list;
+  };
+
+  const parseScreenContentWithAI = async (rawText: string): Promise<ParsedCandidate[]> => {
+    setParsingLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/scraper/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawText }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.candidates) {
+        throw new Error(data.error || "Failed to parse candidates with AI.");
+      }
+
+      const list: ParsedCandidate[] = data.candidates;
+      setParsedCandidates(list);
+      if (list.length > 0) {
+        selectCandidate(list[0]);
+      }
+      return list;
+    } catch (err: any) {
+      console.warn("AI candidate parsing failed, falling back to local regex:", err);
+      const fallbackList = parseScreenContent(rawText);
+      return fallbackList;
+    } finally {
+      setParsingLoading(false);
+    }
   };
 
   const handleGenerate = async (e?: React.FormEvent, overrideInput?: string) => {
@@ -175,11 +210,22 @@ Kumaragurubaran`;
     setLoading(true);
 
     if (aiMode === "off") {
-      generateTemplateDraft(textToUse);
+      // Find candidate if selected, or parse single target input
+      const matched = parsedCandidates.find((c) => c.id === selectedCandidateId);
+      if (matched) {
+        generateTemplateDraft({
+          name: matched.name,
+          role: matched.role,
+          company: matched.company,
+        });
+      } else {
+        const parsed = parseSingleTargetInput(textToUse);
+        generateTemplateDraft(parsed);
+      }
       return;
     }
 
-    // AI ON Mode: Call NVIDIA LLM API endpoint
+    // AI ON Mode: Call NVIDIA LLM API endpoint for custom AI generation
     try {
       const res = await fetch("/api/drafter/generate", {
         method: "POST",
@@ -308,6 +354,8 @@ Kumaragurubaran`;
         selectedCandidateId,
         selectCandidate,
         parseScreenContent,
+        parseScreenContentWithAI,
+        parsingLoading,
         loading,
         error,
         setError,

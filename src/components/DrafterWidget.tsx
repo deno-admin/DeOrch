@@ -91,7 +91,8 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     parsedCandidates,
     selectedCandidateId,
     selectCandidate,
-    parseScreenContent,
+    parseScreenContentWithAI,
+    parsingLoading,
     loading,
     error,
     result,
@@ -196,10 +197,11 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
     await handleGenerate();
   };
 
-  const handleParseScreenText = () => {
+  const handleParseScreenText = async () => {
     if (!screenText.trim()) return;
-    parseScreenContent(screenText);
+    await parseScreenContentWithAI(screenText);
   };
+
 
   // If floating is active and we are NOT in PiP, render floating panel
   const isWidgetVisible = isFloating && !isPiP && !embedded;
@@ -428,10 +430,20 @@ export default function DrafterWidget({ embedded = false }: DrafterWidgetProps) 
                   <button
                     type="button"
                     onClick={handleParseScreenText}
-                    className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    disabled={parsingLoading}
+                    className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                   >
-                    <Search size={13} />
-                    <span>Parse Candidates (Up to 10)</span>
+                    {parsingLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Parsing via AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search size={13} />
+                        <span>Parse Candidates via AI (Max 10)</span>
+                      </>
+                    )}
                   </button>
                 </div>
 

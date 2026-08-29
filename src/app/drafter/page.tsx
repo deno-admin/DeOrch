@@ -99,7 +99,8 @@ export default function DrafterPage() {
     parsedCandidates,
     selectedCandidateId,
     selectCandidate,
-    parseScreenContent,
+    parseScreenContentWithAI,
+    parsingLoading,
     loading,
     error,
     result,
@@ -171,9 +172,9 @@ export default function DrafterPage() {
     await handleGenerate();
   };
 
-  const handleParseScreenText = () => {
+  const handleParseScreenText = async () => {
     if (!screenText.trim()) return;
-    parseScreenContent(screenText);
+    await parseScreenContentWithAI(screenText);
   };
 
   return (
@@ -406,10 +407,20 @@ export default function DrafterPage() {
                     <button
                       type="button"
                       onClick={handleParseScreenText}
-                      className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                      disabled={parsingLoading}
+                      className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                     >
-                      <Search size={14} />
-                      <span>Parse Candidates (Up to 10)</span>
+                      {parsingLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                          <span>Parsing via AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search size={14} />
+                          <span>Parse Candidates via AI (Max 10)</span>
+                        </>
+                      )}
                     </button>
                   </div>
 
