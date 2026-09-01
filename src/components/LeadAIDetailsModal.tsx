@@ -54,7 +54,9 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
 
   useEffect(() => {
     if (lead && isOpen) {
+      setResearchData(null);
       fetchActivityLogs();
+      fetchLeadResearch();
       // Initialize existing follow-up drafts from lead object if present
       const initialFollowUps: Record<string, any> = {};
       if (lead.email_follow_up_1) initialFollowUps["follow_up_1"] = { body: lead.email_follow_up_1, subject: `Re: ${lead.subject || "Outreach"}` };
@@ -65,6 +67,19 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
       setGeneratedFollowUps(initialFollowUps);
     }
   }, [lead, isOpen]);
+
+  const fetchLeadResearch = async () => {
+    if (!lead?.id) return;
+    try {
+      const res = await fetch(`/api/ai/research?leadId=${lead.id}`);
+      const json = await res.json();
+      if (json.success && json.research) {
+        setResearchData(json.research);
+      }
+    } catch (err) {
+      console.error("Error fetching lead research:", err);
+    }
+  };
 
   const fetchActivityLogs = async () => {
     if (!lead?.id) return;
@@ -461,7 +476,29 @@ export function LeadAIDetailsModal({ lead, isOpen, onClose, onRefreshLead }: Lea
                     </div>
                   </div>
 
-                  {/* 4. COMMERCIAL OPPORTUNITIES SECTION */}
+                  {/* 4. STRATEGIC RESEARCH POINTS SECTION */}
+                  {researchData.research_points && researchData.research_points.length > 0 && (
+                    <div className="p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/10 space-y-3">
+                      <div className="flex items-center justify-between border-b border-indigo-200/50 dark:border-indigo-900/30 pb-2">
+                        <span className="font-bold text-xs text-indigo-800 dark:text-indigo-300 uppercase flex items-center gap-1.5">
+                          <Sparkles size={14} /> Strategic Research Points
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50">
+                          {researchData.research_points.length} Points
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {researchData.research_points.map((pt: string, idx: number) => (
+                          <div key={idx} className="p-2.5 bg-white dark:bg-neutral-900 rounded-lg border border-indigo-100 dark:border-indigo-900/30 flex items-start gap-2">
+                            <span className="text-indigo-500 font-bold">•</span>
+                            <span className="font-medium text-neutral-800 dark:text-neutral-200">{pt}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 5. COMMERCIAL OPPORTUNITIES SECTION */}
                   <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10 space-y-3">
                     <div className="flex items-center justify-between border-b border-amber-200/50 dark:border-amber-900/30 pb-2">
                       <span className="font-bold text-xs text-amber-800 dark:text-amber-300 uppercase flex items-center gap-1.5">

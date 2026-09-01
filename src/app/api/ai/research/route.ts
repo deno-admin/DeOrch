@@ -102,27 +102,50 @@ export async function POST(request: Request) {
       console.warn("Could not insert into deorch_commercial_opportunities:", dbErr);
     }
 
-    // 7. Persist to deorch_research artifact table
+    // 7. Persist to deorch_research table
     try {
-      await leadsAdmin.from("deorch_research").insert([
-        {
-          lead_id: leadId,
-          company_summary: research.company_research?.summary || "Summary",
-          industry: research.company_research?.industry || "Software & Services",
-          business_model: research.company_research?.business_model || "B2B",
-          target_audience: research.company_research?.target_audience || "Enterprise Customers",
-          products_services: research.company_research?.key_offerings || [],
-          positioning: research.company_research?.summary || "",
-          company_signals: research.facts ? research.facts.map((f) => f.claim) : [],
-          recent_relevant_information: research.observations ? research.observations.map((o) => o.claim) : [],
-          relevant_people_context: `Context regarding ${leadContext.name} as ${leadContext.role}`,
-          research_points: research.research_points || [],
-          sources: [leadContext.website].filter(Boolean),
-          confidence: research.confidence || "medium",
-        },
-      ]);
+      const researchRecord = {
+        lead_id: leadId,
+        company_research: research.company_research || {},
+        facts: research.facts || [],
+        observations: research.observations || [],
+        inferences: research.inferences || [],
+        research_points: research.research_points || [],
+        commercial_opportunities: research.commercial_opportunities || [],
+        company_summary: research.company_research?.summary || "Summary",
+        industry: research.company_research?.industry || "Software & Services",
+        business_model: research.company_research?.business_model || "B2B",
+        target_audience: research.company_research?.target_audience || "Enterprise Customers",
+        products_services: research.company_research?.key_offerings || [],
+        positioning: research.company_research?.summary || "",
+        company_signals: research.facts ? research.facts.map((f: any) => f.claim) : [],
+        recent_relevant_information: research.observations ? research.observations.map((o: any) => o.claim) : [],
+        relevant_people_context: `Context regarding ${leadContext.name} as ${leadContext.role}`,
+        sources: [leadContext.website].filter(Boolean),
+        confidence: research.confidence || "medium",
+        updated_at: new Date().toISOString(),
+      };
+
+      // Check if research already exists for this lead_id
+      const { data: existingRows } = await leadsAdmin
+        .from("deorch_research")
+        .select("id")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (existingRows && existingRows.length > 0) {
+        await leadsAdmin
+          .from("deorch_research")
+          .update(researchRecord)
+          .eq("id", existingRows[0].id);
+      } else {
+        await leadsAdmin
+          .from("deorch_research")
+          .insert([researchRecord]);
+      }
     } catch (dbErr) {
-      console.warn("Could not insert into deorch_research:", dbErr);
+      console.warn("Could not insert/update deorch_research:", dbErr);
     }
 
     // 8. Update deorch_leads for backwards compatibility
@@ -150,6 +173,66 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("AI Evidence Research API Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const leadId = searchParams.get("leadId");
+
+    if (!leadId) {
+      return NextResponse.json({ error: "leadId is required" }, { status: 400 });
+    }
+
+    const leadsAdmin = getLeadsAdminClient();
+    const { data, error } = await leadsAdmin
+      .from("deorch_research")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      console.warn("Error fetching deorch_research:", error);
+    }
+
+    if (!data) {
+      return NextResponse.json({ success: true, research: null });
+    }
+
+    const formattedResearch = {
+      company_research: data.company_research && Object.keys(data.company_research).length > 0
+        ? data.company_research
+        : {
+            summary: data.company_summary || "",
+            industry: data.industry || "",
+            business_model: data.business_model || "",
+            target_audience: data.target_audience || "",
+            key_offerings: data.products_services || [],
+          },
+      facts: data.facts || [],
+      observations: data.observations || [],
+      inferences: data.inferences || [],
+      research_points: data.research_points || [],
+      commercial_opportunities: data.commercial_opportunities || [],
+      confidence: data.confidence || "medium",
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+
+    return NextResponse.json({
+      success: true,
+      research: formattedResearch,
+      raw: data,
+    });
+  } catch (error: any) {
+    console.error("Error fetching research:", error);
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }

@@ -92,11 +92,12 @@ export async function POST(request: Request) {
     }
 
     // Step 3: Write findings to Supabase
+    const leadsAdmin = getLeadsAdminClient();
     const researchPointsForDb = Array.isArray(analysisResult.research_points)
       ? analysisResult.research_points.join("\n\n")
       : analysisResult.research_points;
 
-    const { error: dbError } = await getLeadsAdminClient()
+    const { error: dbError } = await leadsAdmin
       .from("deorch_leads")
       .update({
         industry: analysisResult.industry,
@@ -110,6 +111,44 @@ export async function POST(request: Request) {
 
     if (dbError) {
       throw dbError;
+    }
+
+    // Persist to deorch_research table
+    try {
+      const researchRecord = {
+        lead_id: leadId,
+        company_research: {
+          summary: analysisResult.bio || "",
+          industry: analysisResult.industry || "",
+          business_model: "B2B",
+          target_audience: "Target Prospects",
+          key_offerings: [],
+        },
+        facts: [],
+        observations: [],
+        inferences: [],
+        research_points: Array.isArray(analysisResult.research_points) ? analysisResult.research_points : [],
+        commercial_opportunities: [],
+        company_summary: analysisResult.bio || "",
+        industry: analysisResult.industry || "",
+        sources: [website].filter(Boolean),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: existing } = await leadsAdmin
+        .from("deorch_research")
+        .select("id")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        await leadsAdmin.from("deorch_research").update(researchRecord).eq("id", existing[0].id);
+      } else {
+        await leadsAdmin.from("deorch_research").insert([researchRecord]);
+      }
+    } catch (rErr) {
+      console.warn("Could not sync to deorch_research:", rErr);
     }
 
     return NextResponse.json({

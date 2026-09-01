@@ -16,25 +16,60 @@ export async function POST(request: Request) {
     let facts: string[] = [];
     let observations: string[] = [];
     let commercialOpportunities: any[] = [];
+    let researchPoints: string[] = research?.research_points || [];
 
     try {
-      const { data: evidenceRows } = await leadsAdmin
-        .from("deorch_research_evidence")
-        .select("type, claim, source_url")
-        .eq("lead_id", leadId);
+      // 1. Check deorch_research table
+      const { data: researchRow } = await leadsAdmin
+        .from("deorch_research")
+        .select("*")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (evidenceRows && evidenceRows.length > 0) {
-        facts = evidenceRows.filter(e => e.type === "fact").map(e => e.claim);
-        observations = evidenceRows.filter(e => e.type === "observation").map(e => e.claim);
+      if (researchRow) {
+        if (Array.isArray(researchRow.facts) && researchRow.facts.length > 0) {
+          facts = researchRow.facts.map((f: any) => (typeof f === "string" ? f : f.claim || ""));
+        }
+        if (Array.isArray(researchRow.observations) && researchRow.observations.length > 0) {
+          observations = researchRow.observations.map((o: any) => (typeof o === "string" ? o : o.claim || ""));
+        }
+        if (Array.isArray(researchRow.commercial_opportunities) && researchRow.commercial_opportunities.length > 0) {
+          commercialOpportunities = researchRow.commercial_opportunities;
+        }
+        if (Array.isArray(researchRow.research_points) && researchRow.research_points.length > 0 && researchPoints.length === 0) {
+          researchPoints = researchRow.research_points;
+        }
       }
 
-      const { data: oppRows } = await leadsAdmin
-        .from("deorch_commercial_opportunities")
-        .select("opportunity, why_it_matters, priority")
-        .eq("lead_id", leadId);
+      // 2. Fallback to deorch_research_evidence if needed
+      if (facts.length === 0 || observations.length === 0) {
+        const { data: evidenceRows } = await leadsAdmin
+          .from("deorch_research_evidence")
+          .select("type, claim, source_url")
+          .eq("lead_id", leadId);
 
-      if (oppRows && oppRows.length > 0) {
-        commercialOpportunities = oppRows;
+        if (evidenceRows && evidenceRows.length > 0) {
+          if (facts.length === 0) {
+            facts = evidenceRows.filter(e => e.type === "fact").map(e => e.claim);
+          }
+          if (observations.length === 0) {
+            observations = evidenceRows.filter(e => e.type === "observation").map(e => e.claim);
+          }
+        }
+      }
+
+      // 3. Fallback to deorch_commercial_opportunities if needed
+      if (commercialOpportunities.length === 0) {
+        const { data: oppRows } = await leadsAdmin
+          .from("deorch_commercial_opportunities")
+          .select("opportunity, why_it_matters, priority")
+          .eq("lead_id", leadId);
+
+        if (oppRows && oppRows.length > 0) {
+          commercialOpportunities = oppRows;
+        }
       }
     } catch (e) {
       console.warn("Could not fetch evidence rows for lead:", e);

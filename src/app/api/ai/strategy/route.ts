@@ -10,12 +10,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "leadId is required" }, { status: 400 });
     }
 
+    const leadsAdmin = getLeadsAdminClient();
+
+    let leadResearch = research;
+    if (!leadResearch) {
+      try {
+        const { data: researchRow } = await leadsAdmin
+          .from("deorch_research")
+          .select("*")
+          .eq("lead_id", leadId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (researchRow) {
+          leadResearch = {
+            company_research: researchRow.company_research,
+            facts: researchRow.facts,
+            observations: researchRow.observations,
+            inferences: researchRow.inferences,
+            research_points: researchRow.research_points,
+            commercial_opportunities: researchRow.commercial_opportunities,
+          };
+        }
+      } catch (e) {
+        console.warn("Could not fetch research for strategy:", e);
+      }
+    }
+
     const aiResponse = await runOutreachStrategyAgent({
       leadId,
       name: name || "Prospect",
       role: role || "Decision Maker",
       company: company || "Target Company",
-      research,
+      research: leadResearch,
       audit,
     });
 
@@ -27,7 +55,6 @@ export async function POST(request: Request) {
     }
 
     const strategy = aiResponse.data;
-    const leadsAdmin = getLeadsAdminClient();
 
     // Persist to deorch_outreach_strategies table
     try {
