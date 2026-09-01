@@ -117,20 +117,17 @@ export async function POST(request: Request) {
     try {
       const researchRecord = {
         lead_id: leadId,
-        company_research: {
-          summary: analysisResult.bio || "",
-          industry: analysisResult.industry || "",
-          business_model: "B2B",
-          target_audience: "Target Prospects",
-          key_offerings: [],
-        },
+        company_summary: analysisResult.bio || "",
+        industry: analysisResult.industry || "",
+        business_model: "B2B",
+        target_audience: "Target Prospects",
+        key_offerings: [],
+        positioning: analysisResult.bio || "",
         facts: [],
         observations: [],
         inferences: [],
         research_points: Array.isArray(analysisResult.research_points) ? analysisResult.research_points : [],
         commercial_opportunities: [],
-        company_summary: analysisResult.bio || "",
-        industry: analysisResult.industry || "",
         sources: [website].filter(Boolean),
         updated_at: new Date().toISOString(),
       };

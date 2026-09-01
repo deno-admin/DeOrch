@@ -106,23 +106,27 @@ export async function POST(request: Request) {
     try {
       const researchRecord = {
         lead_id: leadId,
-        company_research: research.company_research || {},
+        company_summary: research.company_research?.summary || "Summary",
+        industry: research.company_research?.industry || "Software & Services",
+        business_model: research.company_research?.business_model || "B2B",
+        target_audience: research.company_research?.target_audience || "Enterprise Customers",
+        key_offerings: research.company_research?.key_offerings || [],
+        products_services: research.company_research?.key_offerings || [],
+        positioning: research.company_research?.summary || "",
         facts: research.facts || [],
         observations: research.observations || [],
         inferences: research.inferences || [],
         research_points: research.research_points || [],
         commercial_opportunities: research.commercial_opportunities || [],
-        company_summary: research.company_research?.summary || "Summary",
-        industry: research.company_research?.industry || "Software & Services",
-        business_model: research.company_research?.business_model || "B2B",
-        target_audience: research.company_research?.target_audience || "Enterprise Customers",
-        products_services: research.company_research?.key_offerings || [],
-        positioning: research.company_research?.summary || "",
         company_signals: research.facts ? research.facts.map((f: any) => f.claim) : [],
         recent_relevant_information: research.observations ? research.observations.map((o: any) => o.claim) : [],
         relevant_people_context: `Context regarding ${leadContext.name} as ${leadContext.role}`,
         sources: [leadContext.website].filter(Boolean),
+        evidence_summary: evidencePackage.summary || {},
         confidence: research.confidence || "medium",
+        provider: aiResponse.provider || "nvidia",
+        model: aiResponse.model || "meta/llama-3.3-70b-instruct",
+        latency_ms: aiResponse.latencyMs || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -135,17 +139,29 @@ export async function POST(request: Request) {
         .limit(1);
 
       if (existingRows && existingRows.length > 0) {
-        await leadsAdmin
+        const { error: updErr } = await leadsAdmin
           .from("deorch_research")
           .update(researchRecord)
           .eq("id", existingRows[0].id);
+
+        if (updErr) {
+          console.error("Error updating deorch_research:", updErr);
+        } else {
+          console.log(`Successfully updated deorch_research for lead ${leadId}`);
+        }
       } else {
-        await leadsAdmin
+        const { error: insErr } = await leadsAdmin
           .from("deorch_research")
           .insert([researchRecord]);
+
+        if (insErr) {
+          console.error("Error inserting into deorch_research:", insErr);
+        } else {
+          console.log(`Successfully inserted into deorch_research for lead ${leadId}`);
+        }
       }
     } catch (dbErr) {
-      console.warn("Could not insert/update deorch_research:", dbErr);
+      console.error("Exception writing to deorch_research:", dbErr);
     }
 
     // 8. Update deorch_leads for backwards compatibility
@@ -207,15 +223,14 @@ export async function GET(request: Request) {
     }
 
     const formattedResearch = {
-      company_research: data.company_research && Object.keys(data.company_research).length > 0
-        ? data.company_research
-        : {
-            summary: data.company_summary || "",
-            industry: data.industry || "",
-            business_model: data.business_model || "",
-            target_audience: data.target_audience || "",
-            key_offerings: data.products_services || [],
-          },
+      company_research: {
+        summary: data.company_summary || "",
+        industry: data.industry || "",
+        business_model: data.business_model || "",
+        target_audience: data.target_audience || "",
+        key_offerings: data.key_offerings || data.products_services || [],
+        positioning: data.positioning || data.company_summary || "",
+      },
       facts: data.facts || [],
       observations: data.observations || [],
       inferences: data.inferences || [],
